@@ -31,8 +31,8 @@ class _MyAppState extends State<MyApp> {
         primarySwatch: Colors.blue,
       ),
       home: _showSplash
-          ? SplashScreen(onFinished: _goToLogin)  // Show splash screen first
-          : const LoginPage(),  // Use const constructor if possible
+          ? SplashScreen(onFinished: _goToLogin)
+          : const LoginPage(),
     );
   }
 }
