@@ -4,6 +4,7 @@ import 'registerpart.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({Key? key}) : super(key: key);
+
   @override
   State<SignupPage> createState() => _SignupPageState();
 }
@@ -15,33 +16,21 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
+
   String selectedRole = "customer";
- /* void signup() {
+
+  void signup() {
     if (_formKey.currentState!.validate()) {
-      AppUser user = AppUser(
-        name: nameController.text,
-        email: emailController.text,
-        role: selectedRole,
-      );
-      Navigator.pop(context);
-      ScaffoldMessenger.of(
+      Navigator.pushReplacement(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Registration Successful!')));
+        MaterialPageRoute(
+          builder: (_) => RegistrationScreen(
+            username: nameController.text.trim(),
+          ),
+        ),
+      );
     }
-  }*/
- void signup() {
-  if (_formKey.currentState!.validate()) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RegistrationScreen(username: nameController.text.trim()),
-      ),
-    );
   }
-}
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -142,11 +131,13 @@ class _SignupPageState extends State<SignupPage> {
                         return null;
                       },
                     ),
+
                     const SizedBox(height: 20),
+
                     DropdownButtonFormField<String>(
                       value: selectedRole,
                       decoration: InputDecoration(
-                        labelText: "Account Type",
+                        labelText: "Sign up as",
                         filled: true,
                         fillColor: Colors.white,
                         contentPadding: const EdgeInsets.symmetric(
@@ -158,21 +149,18 @@ class _SignupPageState extends State<SignupPage> {
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(15),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                          borderSide:
+                              BorderSide(color: Colors.grey.shade300),
                         ),
                       ),
                       items: const [
                         DropdownMenuItem(
-                          value: "manager",
-                          child: Text("Manager"),
+                          value: "customer",
+                          child: Text("Customer"),
                         ),
                         DropdownMenuItem(
                           value: "employee",
-                          child: Text("Employee (Team)"),
-                        ),
-                        DropdownMenuItem(
-                          value: "customer",
-                          child: Text("Customer"),
+                          child: Text("Employee"),
                         ),
                       ],
                       onChanged: (value) {
@@ -183,6 +171,7 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                   ],
                 ),
+
                 ElevatedButton(
                   onPressed: signup,
                   style: ElevatedButton.styleFrom(
@@ -203,6 +192,7 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                   ),
                 ),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
@@ -222,6 +212,7 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                   ],
                 ),
+
                 Container(
                   padding: const EdgeInsets.only(top: 100),
                   height: 200,
@@ -271,7 +262,7 @@ Widget inputFile({
                 color: Colors.grey.withOpacity(0.3),
                 spreadRadius: 2,
                 blurRadius: 7,
-                offset: const Offset(0, 3), // changes position of shadow
+                offset: const Offset(0, 3),
               ),
             ],
           ),

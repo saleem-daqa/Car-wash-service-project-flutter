@@ -314,15 +314,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  VoidCallback? _buildPayButtonHandler() {
-    if (buttonEnabled) {
-      return () {
-        processPayment();
-      };
-    } else {
-      return null;
-    }
+ VoidCallback? _buildPayButtonHandler() {
+  if (canPay() && !isProcessing) {
+    return processPayment;
+  } else {
+    return null;
   }
+}
+
 
   Widget _buildButtonChild() {
     if (isProcessing) {

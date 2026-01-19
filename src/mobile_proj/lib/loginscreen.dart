@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'signup.dart';
-
 import 'package:flutter/services.dart';
 import 'manager_home.dart';
-import 'employee_home.dart';
-import 'customer_home_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
+
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -15,51 +13,13 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  String selectedRole = "customer";
-  /*void login() {
-    AppUser user = AppUser(
-      name: "Test User",
-      email: emailController.text,
-      role: selectedRole,
-    );
-    if (user.role == "manager") {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ManagerHome()),
-      );
-    } else if (user.role == "employee") {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const EmployeeHome()),
-      );
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CustomerHome()),
-      );
-    }
-  }*/
-void login() {
-  String enteredName = emailController.text.trim();
 
-  if (enteredName == "admin") {
+  void login() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const ManagerHome()),
     );
-  } else if (enteredName == "employee") {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const EmployeeHome()),
-    );
-  } else {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
-  );
-}
-
-}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +58,7 @@ void login() {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        "Login to your account",
+                        "Welcome back",
                         style: TextStyle(fontSize: 15, color: Colors.grey[700]),
                       ),
                     ],
@@ -114,46 +74,6 @@ void login() {
                           controller: passwordController,
                         ),
                         const SizedBox(height: 20),
-                        DropdownButtonFormField<String>(
-                          value: selectedRole,
-                          decoration: InputDecoration(
-                            labelText: "Login as",
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                              vertical: 12,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide(
-                                color: Colors.grey.shade300,
-                              ),
-                            ),
-                          ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: "manager",
-                              child: Text("Manager"),
-                            ),
-                            DropdownMenuItem(
-                              value: "employee",
-                              child: Text("Employee (Team)"),
-                            ),
-                            DropdownMenuItem(
-                              value: "customer",
-                              child: Text("Customer"),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              selectedRole = value!;
-                            });
-                          },
-                        ),
                       ],
                     ),
                   ),
