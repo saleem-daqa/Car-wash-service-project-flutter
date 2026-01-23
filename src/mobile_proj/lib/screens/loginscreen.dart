@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'signup.dart';
 import 'package:flutter/services.dart';
-import 'manager_home.dart';
+import 'customer_home_screen.dart';
+import 'manager_home_screen.dart';
+import 'employee_home_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -14,11 +16,55 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  // Test accounts for different user types
   void login() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ManagerHome()),
-    );
+    final email = emailController.text.trim().toLowerCase();
+    final password = passwordController.text;
+
+    // Validate inputs
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter email and password'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check test accounts and route to appropriate screen
+    Widget? destinationScreen;
+
+    // Manager account
+    if (email == 'manager@test.com' && password == 'manager123') {
+      destinationScreen = const ManagerHomeScreen();
+    }
+    // Customer account
+    else if (email == 'customer@test.com' && password == 'customer123') {
+      destinationScreen = const CustomerHomeScreen();
+    }
+    // Employee account
+    else if (email == 'employee@test.com' && password == 'employee123') {
+      destinationScreen = const EmployeeHomeScreen();
+    }
+    // Invalid credentials
+    else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid email or password'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Navigate to the appropriate screen
+    if (destinationScreen != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => destinationScreen!),
+      );
+    }
   }
 
   @override

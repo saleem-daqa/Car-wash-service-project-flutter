@@ -74,8 +74,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       balanceAfterColor = Colors.red;
     }
 
-    bool buttonEnabled = canPayNow && !isProcessing;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'booking_screen.dart';
 import 'wallet_screen.dart';
-import 'history_screen.dart';
+import 'bookings_screen.dart';
+import 'change_password_screen.dart';
+import 'loginscreen.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({Key? key}) : super(key: key);
@@ -16,13 +18,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   final List<Widget> _pages = [
     BookingScreen(),
     WalletScreen(),
-    HistoryScreen(),
+    BookingsScreen(),
   ];
 
   final List<String> _pageTitles = const [
     'Booking',
     'Wallet',
-    'History',
+    'Bookings',
   ];
 
   void _onItemTapped(int index) {
@@ -79,8 +81,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   label: 'Wallet',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.history),
-                  label: 'History',
+                  icon: Icon(Icons.calendar_today),
+                  label: 'Bookings',
                 ),
               ],
             ),
@@ -124,22 +126,68 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         ],
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: CircleAvatar(
-            radius: 20,
-            backgroundColor: const Color(0xff0095FF),
-            child: IconButton(
-              icon: const Icon(
-                Icons.person,
-                color: Colors.white,
-                size: 20,
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          onSelected: (value) {
+            if (value == 'change_password') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ChangePasswordScreen(),
+                ),
+              );
+            } else if (value == 'logout') {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LoginPage()),
+                          (route) => false,
+                        );
+                      },
+                      child: const Text(
+                        'Logout',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'change_password',
+              child: Row(
+                children: [
+                  Icon(Icons.lock_outline, size: 20),
+                  SizedBox(width: 8),
+                  Text('Change Password'),
+                ],
               ),
-              onPressed: () {
-                // TODO: Navigate to profile
-              },
             ),
-          ),
+            const PopupMenuItem(
+              value: 'logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, size: 20, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Logout', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );

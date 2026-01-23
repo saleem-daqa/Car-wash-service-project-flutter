@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'splashscreen.dart';
-import 'loginscreen.dart';
+import 'screens/splashscreen.dart';
+import 'screens/loginscreen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,9 +28,7 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'Car Wash App', 
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: AppTheme.light(),
       home: _showSplash
           ? SplashScreen(onFinished: _goToLogin)
           : const LoginPage(),

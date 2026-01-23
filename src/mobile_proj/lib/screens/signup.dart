@@ -17,8 +17,6 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController confirmPasswordController =
       TextEditingController();
 
-  String selectedRole = "customer";
-
   void signup() {
     if (_formKey.currentState!.validate()) {
       Navigator.pushReplacement(
@@ -129,44 +127,6 @@ class _SignupPageState extends State<SignupPage> {
                           return 'Passwords do not match';
                         }
                         return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    DropdownButtonFormField<String>(
-                      value: selectedRole,
-                      decoration: InputDecoration(
-                        labelText: "Sign up as",
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
-                          borderSide:
-                              BorderSide(color: Colors.grey.shade300),
-                        ),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: "customer",
-                          child: Text("Customer"),
-                        ),
-                        DropdownMenuItem(
-                          value: "employee",
-                          child: Text("Employee"),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          selectedRole = value!;
-                        });
                       },
                     ),
                   ],

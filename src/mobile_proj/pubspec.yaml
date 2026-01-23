@@ -34,6 +34,8 @@ dependencies:
   lottie: 
   flutter_native_splash: ^2.3.10
   http: ^0.13.4
+  geolocator: ^13.0.1
+  url_launcher: ^6.2.5
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -100,6 +102,7 @@ flutter:
     - assets/LocationFinding.json
     - assets/welcome.png
     - assets/background.png
+    - assets/images/
 
 flutter_native_splash:
   color: "#ffffff"         # background color during splash

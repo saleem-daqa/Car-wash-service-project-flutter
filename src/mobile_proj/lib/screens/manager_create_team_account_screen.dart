@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'loginscreen.dart';
+import 'change_password_screen.dart';
 
 class ManagerCreateTeamAccountScreen extends StatefulWidget {
   const ManagerCreateTeamAccountScreen({super.key});
@@ -11,6 +13,35 @@ class ManagerCreateTeamAccountScreen extends StatefulWidget {
 
 class _ManagerCreateTeamAccountScreenState
     extends State<ManagerCreateTeamAccountScreen> {
+  void _logout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
+            },
+            child: const Text(
+              'Logout',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   final _formKey = GlobalKey<FormState>();
 
   final _teamName = TextEditingController();
@@ -40,7 +71,48 @@ class _ManagerCreateTeamAccountScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Team Account')),
+      appBar: AppBar(
+        title: const Text('Create Team Account'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'change_password') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ChangePasswordScreen(),
+                  ),
+                );
+              } else if (value == 'logout') {
+                _logout(context);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'change_password',
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_outline, size: 20),
+                    SizedBox(width: 8),
+                    Text('Change Password'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Logout', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
