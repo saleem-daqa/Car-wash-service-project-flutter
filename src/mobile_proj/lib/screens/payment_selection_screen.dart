@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/job.dart';
 import '../models/booking.dart';
-import '../services/job_service.dart';
-import '../services/booking_service.dart';
 
 class PaymentSelectionScreen extends StatefulWidget {
   final double bookingAmount;
@@ -36,15 +37,14 @@ class PaymentSelectionScreen extends StatefulWidget {
 
 class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
   String? selectedPaymentMethod;
-  double walletBalance = 0.00; // This should come from shared state or provider
+  double walletBalance = 0.00; 
   bool isProcessing = false;
 
-  // Payment methods
   static const String cash = 'Cash';
   static const String visaCard = 'Visa Card';
   static const String wallet = 'Wallet';
 
-  void processPayment() {
+  void processPayment() async {
     if (selectedPaymentMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -69,72 +69,108 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
       isProcessing = true;
     });
 
-    // Simulate payment processing
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
+    final jobId = 'JOB-${DateTime.now().millisecondsSinceEpoch}';
 
+    final booking = Booking(
+      id: jobId,
+      vehiclePlate: widget.vehicle.plate,
+      serviceName: widget.serviceName,
+      price: widget.bookingAmount,
+      scheduledDate: widget.scheduledDate,
+      scheduledTime: widget.scheduledTime,
+      latitude: widget.latitude,
+      longitude: widget.longitude,
+      notes: widget.notes.isEmpty ? null : widget.notes,
+      paymentMethod: selectedPaymentMethod!,
+      status: BookingStatus.confirmed,
+    );
+
+    final success = await sendBookingToServer(booking);
+
+    if (!success) {
+      if (!mounted) return;
       setState(() {
         isProcessing = false;
       });
-
-      String paymentMethodText = '';
-      switch (selectedPaymentMethod) {
-        case cash:
-          paymentMethodText = 'Cash payment';
-          break;
-        case visaCard:
-          paymentMethodText = 'Visa Card payment';
-          break;
-        case wallet:
-          paymentMethodText = 'Wallet payment';
-          walletBalance = walletBalance - widget.bookingAmount;
-          break;
-      }
-
-      final jobId = 'JOB-${DateTime.now().millisecondsSinceEpoch}';
-      final job = Job(
-        id: jobId,
-        customerName: 'Customer',
-        serviceType: widget.serviceName,
-        vehiclePlate: widget.vehicle.plate,
-        latitude: widget.latitude,
-        longitude: widget.longitude,
-        addressText: widget.addressText.isEmpty ? null : widget.addressText,
-        scheduledDate: widget.scheduledDate,
-        scheduledTime: widget.scheduledTime,
-        notes: widget.notes.isEmpty ? null : widget.notes,
-        paymentMethod: selectedPaymentMethod!,
-        status: JobStatus.assigned,
-      );
-
-      JobService().addJob(job);
-
-      final booking = Booking(
-        id: jobId,
-        vehiclePlate: widget.vehicle.plate,
-        serviceName: widget.serviceName,
-        price: widget.bookingAmount,
-        scheduledDate: widget.scheduledDate,
-        scheduledTime: widget.scheduledTime,
-        latitude: widget.latitude,
-        longitude: widget.longitude,
-        notes: widget.notes.isEmpty ? null : widget.notes,
-        paymentMethod: selectedPaymentMethod!,
-        status: BookingStatus.confirmed,
-      );
-
-      BookingService().addBooking(booking);
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$paymentMethodText of ${widget.bookingAmount.toStringAsFixed(2)} ₪ successful!'),
-          backgroundColor: Colors.green,
+        const SnackBar(
+          content: Text('Failed to save booking on server'),
+          backgroundColor: Colors.red,
         ),
       );
+      return;
+    }
 
-      Navigator.popUntil(context, (route) => route.isFirst);
+    if (selectedPaymentMethod == wallet) {
+      walletBalance -= widget.bookingAmount;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      isProcessing = false;
     });
+
+    String paymentMethodText = '';
+    switch (selectedPaymentMethod) {
+      case cash:
+        paymentMethodText = 'Cash payment';
+        break;
+      case visaCard:
+        paymentMethodText = 'Visa Card payment';
+        break;
+      case wallet:
+        paymentMethodText = 'Wallet payment';
+        break;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$paymentMethodText of ${widget.bookingAmount.toStringAsFixed(2)} ₪ successful!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    Navigator.popUntil(context, (route) => route.isFirst);
   }
+
+Future<bool> sendBookingToServer(Booking booking) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final customerId = prefs.getInt('user_id') ?? 0;
+    
+    final body = {
+      'customer_id': customerId.toString(),
+      'car_id': widget.vehicle.carId.toString(), // Make sure your vehicle object has carId
+      'service_name': booking.serviceName,
+      'price': booking.price.toString(),
+      'booking_date': booking.scheduledDate.toIso8601String(),
+      'booking_time': booking.scheduledTime,
+      'latitude': booking.latitude.toString(),
+      'longitude': booking.longitude.toString(),
+      'notes': booking.notes ?? '',
+      'payment_method': booking.paymentMethod,
+      'address_text': widget.addressText,
+    };
+    
+    print('Sending booking with data: $body');
+    
+    final response = await http.post(
+      Uri.parse('http://localhost/carwash/sendBookingToServer.php'), 
+      body: body,
+    );
+
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['status'] == 'success';
+    }
+  } catch (e) {
+    print('Error sending booking to server: $e');
+  }
+  return false;
+}
 
   Widget _buildPaymentOption(String method, IconData icon, Color color) {
     bool isSelected = selectedPaymentMethod == method;
@@ -212,8 +248,7 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
                 ],
               ),
             ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: color, size: 24),
+            if (isSelected) Icon(Icons.check_circle, color: color, size: 24),
           ],
         ),
       ),

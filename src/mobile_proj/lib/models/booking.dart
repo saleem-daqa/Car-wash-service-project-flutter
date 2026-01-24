@@ -34,6 +34,20 @@ class Booking {
     this.status = BookingStatus.pending,
   });
 
+factory Booking.fromJson(Map<String, dynamic> json) {
+  return Booking(
+    id: 'JOB-${json['id']}',
+    vehiclePlate: json['vehicle_plate'],
+    serviceName: json['service_name'],
+    price: double.parse(json['price'].toString()),
+    scheduledDate: DateTime.parse(json['booking_date']),
+    scheduledTime: json['booking_time'],
+    latitude: 0,
+    longitude: 0,
+    paymentMethod: '',
+    status: BookingStatusExtension.fromString(json['status']),
+  );
+}
   String getStatusText() {
     switch (status) {
       case BookingStatus.pending:
@@ -50,4 +64,25 @@ class Booking {
         return 'Cancelled';
     }
   }
+  
+}
+extension BookingStatusExtension on BookingStatus {
+static BookingStatus fromString(String status) {
+switch (status.toUpperCase()) {
+case 'PENDING':
+return BookingStatus.pending;
+case 'CONFIRMED':
+return BookingStatus.confirmed;
+case 'ASSIGNED':
+return BookingStatus.assigned;
+case 'IN_PROGRESS':
+return BookingStatus.inProgress;
+case 'COMPLETED':
+return BookingStatus.completed;
+case 'CANCELLED':
+return BookingStatus.cancelled;
+default:
+return BookingStatus.pending;
+}
+}
 }

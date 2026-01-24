@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/booking.dart';
-import '../services/booking_service.dart';
-import '../services/wallet_service.dart';
 import 'payment_screen.dart';
 import 'rating_feedback_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({Key? key}) : super(key: key);
@@ -12,9 +13,11 @@ class BookingsScreen extends StatefulWidget {
   State<BookingsScreen> createState() => _BookingsScreenState();
 }
 
-class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAliveClientMixin {
+class _BookingsScreenState extends State<BookingsScreen>
+    with AutomaticKeepAliveClientMixin {
   int selectedTab = 0;
-  final BookingService _bookingService = BookingService();
+  bool isLoading = true;
+  List<Booking> bookings = [];
 
   @override
   bool get wantKeepAlive => true;
@@ -22,15 +25,48 @@ class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAlive
   @override
   void initState() {
     super.initState();
+    fetchBookings();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {});
+  Future<void> fetchBookings() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id') ?? 0;
+
+    final url = selectedTab == 0
+        ? 'http://localhost/carwash/get_current_bookings.php'
+        : 'http://localhost/carwash/get_past_bookings.php';
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        body: {
+          'user_id': userId.toString(),
+        },
+      );
+
+     if (response.statusCode == 200) {
+  final data = json.decode(response.body);
+
+  if (data['status'] == 'success') {
+    bookings = (data['bookings'] as List)
+        .map((e) => Booking.fromJson(e))
+        .toList();
+  } else {
+    bookings = [];
+  }
+} else {
+        bookings = [];
       }
+    } catch (e) {
+      bookings = [];
+    }
+
+    setState(() {
+      isLoading = false;
     });
   }
 
@@ -62,6 +98,7 @@ class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAlive
                       setState(() {
                         selectedTab = 0;
                       });
+                      fetchBookings();
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -81,6 +118,7 @@ class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAlive
                       setState(() {
                         selectedTab = 1;
                       });
+                      fetchBookings();
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -97,28 +135,18 @@ class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAlive
               ],
             ),
           ),
-          Expanded(
-            child: _buildBookingsList(),
-          ),
+          Expanded(child: _buildBookingsList()),
         ],
       ),
     );
   }
 
   Widget _buildBookingsList() {
-    List<Booking> bookings = [];
-    if (selectedTab == 0) {
-      bookings = _bookingService.getCurrentBookings();
-    } else {
-      bookings = _bookingService.getPastBookings();
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (bookings.isEmpty) {
-      String message = 'No current bookings';
-      if (selectedTab == 1) {
-        message = 'No past bookings';
-      }
-
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -126,7 +154,7 @@ class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAlive
             Icon(Icons.calendar_today, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              message,
+              selectedTab == 0 ? 'No current bookings' : 'No past bookings',
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
           ],
@@ -147,6 +175,9 @@ class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAlive
     Color statusColor = _getStatusColor(booking.status);
     String statusText = booking.getStatusText();
 
+    // Safe fallback for vehiclePlate (empty string if null)
+    final vehiclePlate = booking.vehiclePlate ?? '';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -163,6 +194,7 @@ class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAlive
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // Helps prevent overflow
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -170,25 +202,30 @@ class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAlive
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       booking.serviceName,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis, // prevent overflow
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Booking #${booking.id}',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      style: TextStyle(color: Colors.grey[600]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -205,26 +242,16 @@ class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAlive
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(
-                '${booking.scheduledDate.day}/${booking.scheduledDate.month}/${booking.scheduledDate.year} at ${booking.scheduledTime}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-              ),
-            ],
+          Text(
+            '${booking.scheduledDate.day}/${booking.scheduledDate.month}/${booking.scheduledDate.year} at ${booking.scheduledTime}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.directions_car, size: 16, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(
-                booking.vehiclePlate,
-                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-              ),
-            ],
+          Text(
+            vehiclePlate,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 12),
           Row(
@@ -314,48 +341,30 @@ class _BookingsScreenState extends State<BookingsScreen> with AutomaticKeepAlive
   }
 
   BoxDecoration _buildCurrentTabDecoration() {
-    Color tabColor = Colors.transparent;
-    if (selectedTab == 0) {
-      tabColor = const Color(0xff0095FF);
-    }
     return BoxDecoration(
-      color: tabColor,
+      color: selectedTab == 0 ? const Color(0xff0095FF) : Colors.transparent,
       borderRadius: BorderRadius.circular(15),
     );
   }
 
   TextStyle _buildCurrentTabTextStyle() {
-    Color textColor = Colors.grey[600]!;
-    if (selectedTab == 0) {
-      textColor = Colors.white;
-    }
     return TextStyle(
-      fontSize: 16,
       fontWeight: FontWeight.w600,
-      color: textColor,
+      color: selectedTab == 0 ? Colors.white : Colors.grey[600],
     );
   }
 
   BoxDecoration _buildPastTabDecoration() {
-    Color tabColor = Colors.transparent;
-    if (selectedTab == 1) {
-      tabColor = const Color(0xff0095FF);
-    }
     return BoxDecoration(
-      color: tabColor,
+      color: selectedTab == 1 ? const Color(0xff0095FF) : Colors.transparent,
       borderRadius: BorderRadius.circular(15),
     );
   }
 
   TextStyle _buildPastTabTextStyle() {
-    Color textColor = Colors.grey[600]!;
-    if (selectedTab == 1) {
-      textColor = Colors.white;
-    }
     return TextStyle(
-      fontSize: 16,
       fontWeight: FontWeight.w600,
-      color: textColor,
+      color: selectedTab == 1 ? Colors.white : Colors.grey[600],
     );
   }
 }
