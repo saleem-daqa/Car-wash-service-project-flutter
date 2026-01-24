@@ -204,8 +204,8 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
       final body = {
         'customer_id': customerId.toString(),
         'plate_number': plateController.text.trim(),
-        'brand': brandController.text.trim(),
-        'model': modelController.text.trim(),
+        'car_brand': brandController.text.trim(),
+        'car_model': modelController.text.trim(),
         'color': '',
         'notes': '',
       };

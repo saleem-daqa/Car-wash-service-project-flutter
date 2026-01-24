@@ -75,17 +75,24 @@ class _BookingScreenState extends State<BookingScreen> with WidgetsBindingObserv
           
           setState(() {
             vehicles = vehiclesList.map((v) {
-              print('DEBUG BOOKING MAPPING: v = $v');
-              print('DEBUG BOOKING MAPPING: v["car_id"] = ${v["car_id"]}');
+              print('DEBUG BOOKING MAPPING: Full vehicle object: $v');
               
               final carId = v['car_id'];
-              print('DEBUG BOOKING MAPPING: carId = $carId (type: ${carId.runtimeType})');
+              final brand = v['car_brand'] ?? v['brand'] ?? v['vehicle_brand'] ?? '';
+              final model = v['car_model'] ?? v['model'] ?? '';
+              final plate = v['plate_number'] ?? v['plate'] ?? '';
+              
+              print('DEBUG: Extracted - carId=$carId, brand="$brand", model="$model", plate="$plate"');
+              
+              if (brand.isEmpty) {
+                print('WARNING: Brand is empty for vehicle: $v');
+              }
               
               return Vehicle(
                 type: 'Car/Sedan',
-                brand: v['brand'] ?? '',
-                model: v['model'] ?? '',
-                plate: v['plate_number'] ?? '',
+                brand: brand,
+                model: model,
+                plate: plate,
                 carId: carId,
               );
             }).toList();

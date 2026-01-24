@@ -82,7 +82,7 @@ class VehicleCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${vehicle.brand} ${vehicle.model}',
+                    vehicle.brand.isNotEmpty ? '${vehicle.brand} ${vehicle.model}' : vehicle.model,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

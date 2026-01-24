@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'customer_home_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RegistrationScreen extends StatefulWidget {
-  final int userId; // Add this
+  final int userId;
   final String username;
   final String email;
 
@@ -23,6 +24,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController plateNumberController = TextEditingController();
+  final TextEditingController carBrandController = TextEditingController();
   final TextEditingController carModelController = TextEditingController();
 
   void submit() async {
@@ -36,6 +38,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           'user_id': widget.userId.toString(),
           'phone': phoneController.text.trim(),
           'plate_number': plateNumberController.text.trim(),
+          'car_brand': carBrandController.text.trim(),
           'car_model': carModelController.text.trim(),
         },
       );
@@ -48,6 +51,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         print('Decoded response: $data');
 
         if (data['status'] == 'success') {
+          // Save user_id to SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('user_id', widget.userId);
+          
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
@@ -142,10 +149,31 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       value == null || value.isEmpty ? 'Enter plate number' : null,
                 ),
                 inputField(
-                  label: 'Car Model',
+                  label: 'Car Brand',
+                  controller: carBrandController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Enter car brand';
+                    }
+                    if (value.trim().length < 2) {
+                      return 'Brand must be at least 2 characters';
+                    }
+                    return null;
+                  },
+                ),
+                inputField(
+                  label: 'Car Model (Year - Numbers Only)',
                   controller: carModelController,
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Enter car model' : null,
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Enter car model year';
+                    }
+                    if (!RegExp(r'^\d+$').hasMatch(value.trim())) {
+                      return 'Model must be numbers only (e.g., 2023)';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 40),
                 ElevatedButton(
