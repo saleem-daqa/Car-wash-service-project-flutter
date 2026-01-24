@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'registerpart.dart';
+import 'registerpart.dart';  
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class SignupPage extends StatefulWidget {
   const SignupPage({Key? key}) : super(key: key);
@@ -14,19 +16,57 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
-      TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
-  void signup() {
+  final String apiUrl = 'http://localhost/carwash/register.php'; 
+
+//Flutter sends an HTTP POST request
+  void signup() async {
     if (_formKey.currentState!.validate()) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => RegistrationScreen(
-            username: nameController.text.trim(),
-          ),
-        ),
-      );
+      try {
+        final response = await http.post(
+          Uri.parse(apiUrl),
+          body: {
+            'name': nameController.text.trim(),
+            'email': emailController.text.trim(),
+            'password': passwordController.text.trim(),
+            'role': 'CUSTOMER',
+          },
+        );
+
+        print('Response status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['status'] == 'success' && data['user_id'] != null) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RegistrationScreen(
+                  userId: data['user_id'],
+                  username: nameController.text.trim(),
+                  email: emailController.text.trim(),
+                ),
+              ),
+            );
+          } else {
+            String message = data['message'] ?? 'Registration failed';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(message)),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Server error: ${response.statusCode}')),
+          );
+        }
+      } catch (e) {
+        print('Exception caught: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
@@ -46,92 +86,87 @@ class _SignupPageState extends State<SignupPage> {
           icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.black),
         ),
       ),
-      body: SingleChildScrollView(
+      body: SingleChildScrollView(  
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          height: MediaQuery.of(context).size.height - 50,
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
           width: double.infinity,
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Column(
-                  children: <Widget>[
-                    const Text(
-                      "Sign up",
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      "Create an account, It's free ",
-                      style: TextStyle(fontSize: 15, color: Colors.grey[700]),
-                    ),
-                  ],
+                const SizedBox(height: 20),
+                const Text(
+                  "Sign up",
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                Column(
-                  children: <Widget>[
-                    inputFile(
-                      label: "Username",
-                      controller: nameController,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your username';
-                        }
-                        return null;
-                      },
-                    ),
-                    inputFile(
-                      label: "Email",
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        final emailRegex = RegExp(
-                          r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$",
-                        );
-                        if (!emailRegex.hasMatch(value)) {
-                          return 'Enter a valid email address';
-                        }
-                        return null;
-                      },
-                    ),
-                    inputFile(
-                      label: "Password",
-                      obscureText: true,
-                      controller: passwordController,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a password';
-                        }
-                        if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    inputFile(
-                      label: "Confirm Password",
-                      obscureText: true,
-                      controller: confirmPasswordController,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please confirm your password';
-                        }
-                        if (value != passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
+                const SizedBox(height: 10),
+                Text(
+                  "Create an account, It's free",
+                  style: TextStyle(fontSize: 15, color: Colors.grey[700]),
+                ),
+                const SizedBox(height: 30),
+
+                inputFile(
+                  label: "Username",
+                  controller: nameController,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your username';
+                    }
+                    return null;
+                  },
+                ),
+                inputFile(
+                  label: "Email",
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    final emailRegex = RegExp(
+                      r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$",
+                    );
+                    if (!emailRegex.hasMatch(value)) {
+                      return 'Enter a valid email address';
+                    }
+                    return null;
+                  },
+                ),
+                inputFile(
+                  label: "Password",
+                  obscureText: true,
+                  controller: passwordController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                ),
+                inputFile(
+                  label: "Confirm Password",
+                  obscureText: true,
+                  controller: confirmPasswordController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value != passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
                 ),
 
+                const SizedBox(height: 30),
                 ElevatedButton(
                   onPressed: signup,
                   style: ElevatedButton.styleFrom(
@@ -153,6 +188,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                 ),
 
+                const SizedBox(height: 15),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
@@ -173,8 +209,8 @@ class _SignupPageState extends State<SignupPage> {
                   ],
                 ),
 
+                const SizedBox(height: 40),
                 Container(
-                  padding: const EdgeInsets.only(top: 100),
                   height: 200,
                   decoration: const BoxDecoration(
                     image: DecorationImage(

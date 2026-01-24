@@ -178,4 +178,10 @@ CREATE TABLE ratings_feedback (
   UNIQUE KEY uq_feedback_booking (booking_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+INSERT INTO users (full_name, email, phone, password_hash, role)
+VALUES
+('Test Customer', 'customer@example.com', '111', '123456', 'CUSTOMER'),
+('Test Employee', 'employee@example.com', '222', '123456', 'EMPLOYEE'),
+('Test Manager', 'manager@example.com', '333', '123456', 'MANAGER');
+
 SHOW TABLES;

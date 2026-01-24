@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'customer_home_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class RegistrationScreen extends StatefulWidget {
+  final int userId; // Add this
   final String username;
+  final String email;
 
-  const RegistrationScreen({Key? key, required this.username}) : super(key: key);
+  const RegistrationScreen({
+    Key? key,
+    required this.userId,
+    required this.username,
+    required this.email,
+  }) : super(key: key);
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -16,20 +25,54 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController plateNumberController = TextEditingController();
   final TextEditingController carModelController = TextEditingController();
 
-  void submit() {
-    if (_formKey.currentState!.validate()) {
-      if (widget.username.toLowerCase() == 'shahd') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
-        );
+  void submit() async {
+  if (_formKey.currentState!.validate()) {
+    print('Validation passed, sending request...');
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost/carwash/complete_registration.php'),
+        body: {
+          'user_id': widget.userId.toString(),
+          'phone': phoneController.text.trim(),
+          'plate_number': plateNumberController.text.trim(),
+          'car_model': carModelController.text.trim(),
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('Decoded response: $data');
+
+        if (data['status'] == 'success') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Failed to complete registration')),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Only username "shahd" can enter for now.')),
+          const SnackBar(content: Text('Error connecting to server')),
         );
       }
+    } catch (e) {
+      print('Exception in submit: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
+  } else {
+    print('Validation failed');
   }
+}
+
 
   Widget inputField({
     required String label,

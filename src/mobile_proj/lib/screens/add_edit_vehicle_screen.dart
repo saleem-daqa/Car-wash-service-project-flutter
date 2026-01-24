@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import '../models/vehicle.dart';
 import '../models/wash_service.dart';
 import 'wash_service_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';  
 
 class AddEditVehicleScreen extends StatefulWidget {
   final Vehicle? vehicleToEdit;
@@ -40,6 +43,7 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
   String? brandError;
   String? modelError;
   String? plateError;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -159,7 +163,7 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
     });
   }
 
-  void addVehicle() {
+  void _saveVehicle() async {
     if (!validateAllFields()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -170,39 +174,124 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
       return;
     }
 
-    final vehicle = Vehicle(
-      type: selectedType!,
-      brand: brandController.text.trim(),
-      model: modelController.text.trim(),
-      plate: plateController.text.trim().toUpperCase(),
-    );
+    final prefs = await SharedPreferences.getInstance();
+    final customerId = prefs.getInt('user_id') ?? 0;
+    
+    print('DEBUG: customerId = $customerId');
+    
+    if (customerId == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in')),
+      );
+      return;
+    }
 
-    if (isEditingMode || editingIndex != null) {
-      if (widget.onVehicleUpdated != null) {
-        widget.onVehicleUpdated!(vehicle);
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Check if editing or creating
+      final isEditing = widget.vehicleToEdit != null;
+      final endpoint = isEditing ? 'update_vehicle.php' : 'create_vehicle.php';
+      
+      print('DEBUG: isEditing = $isEditing');
+      print('DEBUG: vehicleToEdit = ${widget.vehicleToEdit}');
+      if (isEditing) {
+        print('DEBUG: vehicleToEdit.carId = ${widget.vehicleToEdit!.carId}');
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vehicle updated successfully!'),
-          backgroundColor: Colors.green,
-        ),
+      
+      final body = {
+        'customer_id': customerId.toString(),
+        'plate_number': plateController.text.trim(),
+        'brand': brandController.text.trim(),
+        'model': modelController.text.trim(),
+        'color': '',
+        'notes': '',
+      };
+
+      // Add car_id if editing
+      if (isEditing && widget.vehicleToEdit!.carId != null) {
+        body['car_id'] = widget.vehicleToEdit!.carId.toString();
+        print('DEBUG: Added car_id = ${widget.vehicleToEdit!.carId}');
+      } else if (isEditing) {
+        print('DEBUG: WARNING - carId is null or not provided!');
+      }
+
+      print('DEBUG: Sending to $endpoint');
+      print('DEBUG: Body = $body');
+
+      final response = await http.post(
+        Uri.parse('http://localhost/carwash/$endpoint'),
+        body: body,
       );
-      Navigator.pop(context, vehicle);
-    } else {
-      if (widget.onVehicleAdded != null) {
-        widget.onVehicleAdded!(vehicle);
+
+      print('DEBUG: Response status = ${response.statusCode}');
+      print('DEBUG: Response body = ${response.body}');
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'success') {
+          final vehicle = Vehicle(
+            type: selectedType!,
+            brand: brandController.text.trim(),
+            model: modelController.text.trim(),
+            plate: plateController.text.trim().toUpperCase(),
+            carId: isEditing ? widget.vehicleToEdit!.carId : data['car_id'],
+          );
+
+          if (isEditing) {
+            if (widget.onVehicleUpdated != null) {
+              widget.onVehicleUpdated!(vehicle);
+            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Vehicle updated successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            if (widget.onVehicleAdded != null) {
+              widget.onVehicleAdded!(vehicle);
+            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Vehicle created successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? 'Failed to save vehicle'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       } else {
-        setState(() {
-          vehicles.add(vehicle);
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vehicle added successfully!'),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: Text('Connection error: $e'),
+          backgroundColor: Colors.red,
         ),
       );
-      Navigator.pop(context, vehicle);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -398,10 +487,10 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: addVehicle,
-                          icon: const Icon(Icons.save),
+                          onPressed: _isLoading ? null : _saveVehicle,
+                          icon: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white))) : const Icon(Icons.save),
                           label: Text(
-                            (isEditingMode || editingIndex != null) ? 'Update Vehicle' : 'Add Vehicle',
+                            _isLoading ? 'Saving...' : (widget.vehicleToEdit != null ? 'Update Vehicle' : 'Add Vehicle'),
                             style: const TextStyle(fontSize: 16),
                           ),
                           style: ElevatedButton.styleFrom(

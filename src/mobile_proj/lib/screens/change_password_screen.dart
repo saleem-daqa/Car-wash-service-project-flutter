@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
@@ -17,6 +19,44 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
+  bool _passwordIsCorrect = false;
+
+  Future<bool> _verifyCurrentPassword(String password) async {
+    if (password.isEmpty) return false;
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id') ?? 0;
+      
+      print('DEBUG: userId = $userId, password = $password');
+      
+      if (userId == 0) {
+        print('DEBUG: userId is 0');
+        return false;
+      }
+      
+      final response = await http.post(
+        Uri.parse('http://localhost/carwash/verify_password.php'),
+        body: {
+          'user_id': userId.toString(),
+          'password': password,
+        },
+      );
+      
+      print('DEBUG: Response status = ${response.statusCode}');
+      print('DEBUG: Response body = ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('DEBUG: Response data = $data');
+        return data['status'] == 'success';
+      }
+      return false;
+    } catch (e) {
+      print('DEBUG: Error = $e');
+      return false;
+    }
+  }
 
   @override
   void dispose() {
@@ -26,33 +66,77 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     super.dispose();
   }
 
-  void _changePassword() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+ void _changePassword() async {
+  if (!_formKey.currentState!.validate()) {
+    return;
+  }
 
-    setState(() {
-      _isLoading = true;
-    });
+  final prefs = await SharedPreferences.getInstance();
+  final userId = prefs.getInt('user_id') ?? 0;
+  
+  if (userId == 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('User not logged in')),
+    );
+    return;
+  }
 
-    // Simulate API call
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
+  setState(() {
+    _isLoading = true;
+  });
 
-      setState(() {
-        _isLoading = false;
-      });
+  try {
+    final response = await http.post(
+      Uri.parse('http://localhost/carwash/change_password.php'),
+      body: {
+        'user_id': userId.toString(),  
+        'current_password': currentPasswordController.text.trim(),
+        'new_password': newPasswordController.text.trim(),
+      },
+    );
 
+    if (!mounted) return;
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      if (data['status'] == 'success') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password changed successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to change password'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password changed successfully!'),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: Text('Error: ${response.statusCode}'),
+          backgroundColor: Colors.red,
         ),
       );
-
-      Navigator.pop(context);
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Connection error: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    setState(() {
+      _isLoading = false;
     });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -93,26 +177,59 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       TextFormField(
                         controller: currentPasswordController,
                         obscureText: _obscureCurrent,
+                        onChanged: (value) async {
+                          if (value.isNotEmpty) {
+                            final isCorrect = await _verifyCurrentPassword(value);
+                            setState(() {
+                              _passwordIsCorrect = isCorrect;
+                            });
+                            if (!isCorrect && value.length > 2) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Current password is incorrect'),
+                                  backgroundColor: Colors.red,
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          } else {
+                            setState(() {
+                              _passwordIsCorrect = false;
+                            });
+                          }
+                        },
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter current password';
+                          }
+                          if (!_passwordIsCorrect) {
+                            return 'Current password is incorrect';
                           }
                           return null;
                         },
                         decoration: InputDecoration(
                           hintText: 'Enter current password',
                           prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureCurrent
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureCurrent = !_obscureCurrent;
-                              });
-                            },
+                          suffixIcon: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_passwordIsCorrect && currentPasswordController.text.isNotEmpty)
+                                const Icon(Icons.check_circle, color: Colors.green)
+                              else if (!_passwordIsCorrect && currentPasswordController.text.isNotEmpty)
+                                const Icon(Icons.cancel, color: Colors.red),
+                              IconButton(
+                                icon: Icon(
+                                  _obscureCurrent
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureCurrent = !_obscureCurrent;
+                                  });
+                                },
+                              ),
+                            ],
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),

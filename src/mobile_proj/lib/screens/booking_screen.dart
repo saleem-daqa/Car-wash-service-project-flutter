@@ -3,6 +3,9 @@ import '../models/vehicle.dart';
 import '../widgets/vehicle_card.dart';
 import 'add_edit_vehicle_screen.dart';
 import 'vehicle_actions_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -11,16 +14,96 @@ class BookingScreen extends StatefulWidget {
   State<BookingScreen> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends State<BookingScreen> {
-  // Initialize with a dummy car for testing
-  List<Vehicle> vehicles = [
-    Vehicle(
-      type: 'Car/Sedan',
-      brand: 'Toyota',
-      model: '2023',
-      plate: 'ABC-1234',
-    ),
-  ];
+class _BookingScreenState extends State<BookingScreen> with WidgetsBindingObserver {
+  List<Vehicle> vehicles = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadVehicles();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      print('DEBUG BOOKING: Screen resumed, reloading vehicles');
+      _loadVehicles();
+    }
+  }
+
+  Future<void> _loadVehicles() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final customerId = prefs.getInt('user_id') ?? 0;
+      
+      print('DEBUG BOOKING: Loading vehicles for customerId = $customerId');
+      
+      if (customerId == 0) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse('http://localhost/carwash/get_all_vehicles.php'),
+        body: {
+          'customer_id': customerId.toString(),
+        },
+      );
+
+      print('DEBUG BOOKING: Response status = ${response.statusCode}');
+      print('DEBUG BOOKING: Response body = ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        print('DEBUG BOOKING: data = $data');
+        
+        if (data['status'] == 'success') {
+          final vehiclesList = data['vehicles'] as List;
+          print('DEBUG BOOKING: vehiclesList length = ${vehiclesList.length}');
+          print('DEBUG BOOKING: vehiclesList = $vehiclesList');
+          
+          setState(() {
+            vehicles = vehiclesList.map((v) {
+              print('DEBUG BOOKING MAPPING: v = $v');
+              print('DEBUG BOOKING MAPPING: v["car_id"] = ${v["car_id"]}');
+              
+              final carId = v['car_id'];
+              print('DEBUG BOOKING MAPPING: carId = $carId (type: ${carId.runtimeType})');
+              
+              return Vehicle(
+                type: 'Car/Sedan',
+                brand: v['brand'] ?? '',
+                model: v['model'] ?? '',
+                plate: v['plate_number'] ?? '',
+                carId: carId,
+              );
+            }).toList();
+            _isLoading = false;
+            print('DEBUG BOOKING: Loaded ${vehicles.length} vehicles');
+            for (int i = 0; i < vehicles.length; i++) {
+              print('DEBUG BOOKING: Vehicle $i: carId = ${vehicles[i].carId}');
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading vehicles: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   void _addVehicle() async {
     final result = await Navigator.push(
@@ -28,24 +111,12 @@ class _BookingScreenState extends State<BookingScreen> {
       MaterialPageRoute(
         builder: (context) => AddEditVehicleScreen(
           onVehicleAdded: (vehicle) {
-            setState(() {
-              vehicles.add(vehicle);
-            });
+            // Reload vehicles from database after adding
+            _loadVehicles();
           },
         ),
       ),
     );
-    
-    // Fallback: if callback didn't work, use result
-    if (result != null && result is Vehicle) {
-      // Check if vehicle with same plate already exists
-      bool exists = vehicles.any((v) => v.plate == (result as Vehicle).plate);
-      if (!exists) {
-        setState(() {
-          vehicles.add(result as Vehicle);
-        });
-      }
-    }
   }
 
   void _onVehicleDeleted(int index) {
@@ -64,9 +135,11 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: vehicles.isEmpty
-          ? _buildEmptyState()
-          : _buildVehiclesList(),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : vehicles.isEmpty
+              ? _buildEmptyState()
+              : _buildVehiclesList(),
     );
   }
 

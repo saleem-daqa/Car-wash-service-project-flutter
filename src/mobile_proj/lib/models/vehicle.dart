@@ -3,12 +3,14 @@ class Vehicle {
   final String brand;
   final String model;
   final String plate;
+  final int? carId;
 
   Vehicle({
     required this.type,
     required this.brand,
     required this.model,
     required this.plate,
+    this.carId,
   });
 
   static bool isValidModel(String model) {
