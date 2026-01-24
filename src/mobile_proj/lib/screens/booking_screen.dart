@@ -60,6 +60,7 @@ class _BookingScreenState extends State<BookingScreen> with WidgetsBindingObserv
         },
       );
 
+     
       print('DEBUG BOOKING: Response status = ${response.statusCode}');
       print('DEBUG BOOKING: Response body = ${response.body}');
 
@@ -290,3 +291,4 @@ class _BookingScreenState extends State<BookingScreen> with WidgetsBindingObserv
     );
   }
 }
+
