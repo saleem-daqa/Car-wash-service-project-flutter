@@ -25,6 +25,7 @@ CREATE TABLE customer_cars (
   car_id        INT AUTO_INCREMENT PRIMARY KEY,
   customer_id   INT NOT NULL,
   plate_number  VARCHAR(30) NOT NULL,
+  type          VARCHAR(50),
   brand         VARCHAR(60) NOT NULL,
   model         VARCHAR(60) NOT NULL,
   color         VARCHAR(40),
@@ -106,20 +107,26 @@ CREATE TABLE bookings (
   status                ENUM('PENDING','CONFIRMED','ASSIGNED','IN_PROGRESS','COMPLETED','CANCELLED')
                         NOT NULL DEFAULT 'PENDING',
   price_total           DECIMAL(10,2) NOT NULL,
+  payment_method        ENUM('CASH','VISA','WALLET') NOT NULL DEFAULT 'CASH',
   special_instructions  TEXT,
   created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (customer_id) REFERENCES users(user_id),
   FOREIGN KEY (car_id) REFERENCES customer_cars(car_id),
-  FOREIGN KEY (service_id) REFERENCES services(service_id)
+  FOREIGN KEY (service_id) REFERENCES services(service_id),
+  
+  KEY idx_bookings_status (status),
+  KEY idx_bookings_customer (customer_id),
+  KEY idx_bookings_scheduled (scheduled_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 8) Booking Assignments
 CREATE TABLE booking_assignments (
   assignment_id  INT AUTO_INCREMENT PRIMARY KEY,
   booking_id     INT NOT NULL,
-  team_id        INT NOT NULL,
-  assigned_by    INT,
+  team_id        INT,
+  employee_id    INT,
+  assigned_by     INT,
   assigned_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   started_at     DATETIME,
   finished_at    DATETIME,
@@ -128,15 +135,19 @@ CREATE TABLE booking_assignments (
     ON DELETE CASCADE,
 
   FOREIGN KEY (team_id) REFERENCES teams(team_id),
+  FOREIGN KEY (employee_id) REFERENCES users(user_id),
   FOREIGN KEY (assigned_by) REFERENCES users(user_id),
 
-  UNIQUE KEY uq_assignment_booking (booking_id)
+  UNIQUE KEY uq_assignment_booking (booking_id),
+  KEY idx_assignments_employee (employee_id),
+  KEY idx_assignments_team (team_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 9) Wallets
 CREATE TABLE wallets (
   customer_id  INT PRIMARY KEY,
   balance      DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  points       INT NOT NULL DEFAULT 0,
   updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                ON UPDATE CURRENT_TIMESTAMP,
 
@@ -149,15 +160,23 @@ CREATE TABLE wallet_transactions (
   txn_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
   customer_id  INT NOT NULL,
   booking_id   INT,
-  txn_type     ENUM('RECHARGE','PAYMENT','REFUND') NOT NULL,
-  amount       DECIMAL(10,2) NOT NULL,
+  txn_type     ENUM('RECHARGE','PAYMENT','REFUND','POINTS_EARNED','POINTS_CONVERTED') NOT NULL,
+  amount       DECIMAL(10,2) DEFAULT 0.00,
+  points_earned INT DEFAULT 0,
+  points_used   INT DEFAULT 0,
   created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   note         VARCHAR(255),
 
   FOREIGN KEY (customer_id) REFERENCES users(user_id),
   FOREIGN KEY (booking_id) REFERENCES bookings(booking_id),
 
-  CHECK (amount > 0)
+  KEY idx_transactions_customer (customer_id),
+  KEY idx_transactions_booking (booking_id),
+  KEY idx_transactions_created (created_at),
+  
+  CHECK (amount >= 0),
+  CHECK (points_earned >= 0),
+  CHECK (points_used >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 11) Ratings & Feedback
@@ -177,11 +196,5 @@ CREATE TABLE ratings_feedback (
   CHECK (rating BETWEEN 1 AND 5),
   UNIQUE KEY uq_feedback_booking (booking_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO users (full_name, email, phone, password_hash, role)
-VALUES
-('Test Customer', 'customer@example.com', '111', '123456', 'CUSTOMER'),
-('Test Employee', 'employee@example.com', '222', '123456', 'EMPLOYEE'),
-('Test Manager', 'manager@example.com', '333', '123456', 'MANAGER');
 
 SHOW TABLES;
