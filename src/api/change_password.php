@@ -8,15 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-$conn = new mysqli("localhost", "root", "1234", "car_wash_db");
-
-if ($conn->connect_error) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Database connection failed'
-    ]);
-    exit;
-}
+require_once 'db.php';
 
 $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
 $current_password = $_POST['current_password'] ?? '';
@@ -30,7 +22,14 @@ if ($user_id === 0 || $current_password === '' || $new_password === '') {
     exit;
 }
 
-// Get stored password
+if (strlen($new_password) < 6) {
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'New password must be at least 6 characters'
+    ]);
+    exit;
+}
+
 $stmt = $conn->prepare("SELECT password_hash FROM users WHERE user_id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -41,22 +40,24 @@ if ($result->num_rows === 0) {
         'status' => 'error',
         'message' => 'User not found'
     ]);
+    $stmt->close();
+    $conn->close();
     exit;
 }
 
 $row = $result->fetch_assoc();
 $stored_password = $row['password_hash'];
+$stmt->close();
 
-// Compare plain text passwords
 if ($current_password !== $stored_password) {
     echo json_encode([
         'status' => 'error',
         'message' => 'Current password is incorrect'
     ]);
+    $conn->close();
     exit;
 }
 
-// Update password
 $update_stmt = $conn->prepare(
     "UPDATE users SET password_hash = ? WHERE user_id = ?"
 );
@@ -70,9 +71,10 @@ if ($update_stmt->execute()) {
 } else {
     echo json_encode([
         'status' => 'error',
-        'message' => 'Failed to update password'
+        'message' => 'Failed to update password: ' . $update_stmt->error
     ]);
 }
 
 $update_stmt->close();
 $conn->close();
+?>

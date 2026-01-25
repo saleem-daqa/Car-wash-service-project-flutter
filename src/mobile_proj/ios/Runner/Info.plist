@@ -45,11 +45,11 @@
 		<true/>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
-	<key>UIStatusBarHidden</key>
-	<false/>
+		<key>UIStatusBarHidden</key>
+		<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need your location to provide car wash services at your location</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>We need your location to provide car wash services at your location</string>
-</dict>
+	</dict>
 </plist>

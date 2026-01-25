@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
@@ -28,32 +29,24 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getInt('user_id') ?? 0;
       
-      print('DEBUG: userId = $userId, password = $password');
-      
       if (userId == 0) {
-        print('DEBUG: userId is 0');
         return false;
       }
       
       final response = await http.post(
-        Uri.parse('http://localhost/carwash/verify_password.php'),
+        Uri.parse(ApiConfig.verifyPasswordUrl),
         body: {
           'user_id': userId.toString(),
           'password': password,
         },
       );
       
-      print('DEBUG: Response status = ${response.statusCode}');
-      print('DEBUG: Response body = ${response.body}');
-      
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('DEBUG: Response data = $data');
         return data['status'] == 'success';
       }
       return false;
     } catch (e) {
-      print('DEBUG: Error = $e');
       return false;
     }
   }
@@ -76,7 +69,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   
   if (userId == 0) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('User not logged in')),
+      const SnackBar(content: Text('Please login first')),
     );
     return;
   }
@@ -87,7 +80,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   try {
     final response = await http.post(
-      Uri.parse('http://localhost/carwash/change_password.php'),
+      Uri.parse(ApiConfig.changePasswordUrl),
       body: {
         'user_id': userId.toString(),  
         'current_password': currentPasswordController.text.trim(),
@@ -111,7 +104,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(data['message'] ?? 'Failed to change password'),
+            content: Text(data['message'] ?? 'Could not change password'),
             backgroundColor: Colors.red,
           ),
         );
@@ -119,7 +112,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${response.statusCode}'),
+          content: Text('Server error: ${response.statusCode}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -127,7 +120,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Connection error: $e'),
+        content: Text('Error: $e'),
         backgroundColor: Colors.red,
       ),
     );

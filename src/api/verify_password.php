@@ -8,12 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-$conn = new mysqli("localhost", "root", "1234", "car_wash_db");
-
-if ($conn->connect_error) {
-    echo json_encode(['status' => 'error', 'message' => 'Database connection failed']);
-    exit;
-}
+require_once 'db.php';
 
 $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
 $password = $_POST['password'] ?? '';
@@ -39,19 +34,10 @@ $row = $result->fetch_assoc();
 $stored_password = $row['password_hash'];
 $stmt->close();
 
-$debug = [
-    'user_id' => $user_id,
-    'stored_password' => $stored_password,
-    'submitted_password' => $password,
-    'stored_length' => strlen($stored_password),
-    'submitted_length' => strlen($password),
-    'match' => $password === $stored_password
-];
-
 if ($password === $stored_password) {
-    echo json_encode(['status' => 'success', 'message' => 'Password is correct', 'debug' => $debug]);
+    echo json_encode(['status' => 'success', 'message' => 'Password is correct']);
 } else {
-    echo json_encode(['status' => 'error', 'message' => 'Password is incorrect', 'debug' => $debug]);
+    echo json_encode(['status' => 'error', 'message' => 'Password is incorrect']);
 }
 
 $conn->close();

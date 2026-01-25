@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/job.dart';
-import '../theme/app_theme.dart';
-import '../services/job_service.dart';
 import 'job_details_screen.dart';
 import 'loginscreen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 
 class EmployeeHomeScreen extends StatefulWidget {
   const EmployeeHomeScreen({super.key});
@@ -13,38 +15,44 @@ class EmployeeHomeScreen extends StatefulWidget {
 }
 
 class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
-  List<Job> jobs = [];
+  Future<List<Job>>? jobsFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadJobs();
+    jobsFuture = fetchJobs();
   }
 
-  void _loadJobs() {
-    setState(() {
-      jobs = JobService().jobs;
-    });
+  Future<List<Job>> fetchJobs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final employeeId = prefs.getInt('user_id') ?? 0;
+
+    if (employeeId == 0) {
+      return [];
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/get_all_bookings_for_employees.php'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success' && data['data'] != null) {
+          final allBookings = data['data'] as List;
+          final jobsList = allBookings.map((jobData) {
+            return Job.fromJson(jobData);
+          }).toList();
+          return jobsList;
+        }
+      }
+    } catch (e) {
+      return [];
+    }
+    return [];
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadJobs();
-  }
-
-  void _updateJobStatus(Job job, JobStatus newStatus) {
-    JobService().updateJobStatus(job.id, newStatus);
-    _loadJobs();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Job ${job.id} status updated'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
-
-  void _logout() {
+  void logout() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -64,255 +72,14 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                 (route) => false,
               );
             },
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Employee Home'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: _logout,
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _headerCard(),
-          const SizedBox(height: 12),
-          if (jobs.isEmpty) _emptyState(),
-          ...jobs.map((job) => Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(job.status).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  _getStatusIcon(job.status),
-                  color: _getStatusColor(job.status),
-                  size: 24,
-                ),
-              ),
-              title: Text(
-                job.serviceType,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.darkBlue,
-                ),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(job.customerName),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on, size: 14, color: Colors.red[600]),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          job.addressText != null && job.addressText!.isNotEmpty
-                              ? job.addressText!
-                              : job.getLocationString(),
-                          style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.payment, size: 14, color: Colors.green[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        _getPaymentMethodText(job.paymentMethod),
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(job.status).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _getStatusText(job.status),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _getStatusColor(job.status),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              trailing: PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: AppTheme.primaryBlue),
-                onSelected: (value) {
-                  if (value == 'view_details') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => JobDetailsScreen(job: job),
-                      ),
-                    ).then((_) {
-                      _loadJobs();
-                    });
-                  } else if (value == 'start' && job.status == JobStatus.assigned) {
-                    _updateJobStatus(job, JobStatus.inProgress);
-                  } else if (value == 'complete' && job.status == JobStatus.inProgress) {
-                    _updateJobStatus(job, JobStatus.completed);
-                  }
-                },
-                itemBuilder: (context) {
-                  List<PopupMenuEntry<String>> items = [
-                    const PopupMenuItem(
-                      value: 'view_details',
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline, size: 20),
-                          SizedBox(width: 8),
-                          Text('View Details'),
-                        ],
-                      ),
-                    ),
-                  ];
-                  
-                  if (job.status == JobStatus.assigned) {
-                    items.add(
-                      const PopupMenuItem(
-                        value: 'start',
-                        child: Row(
-                          children: [
-                            Icon(Icons.play_arrow, size: 20, color: Colors.green),
-                            SizedBox(width: 8),
-                            Text('Start Job', style: TextStyle(color: Colors.green)),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  
-                  if (job.status == JobStatus.inProgress) {
-                    items.add(
-                      const PopupMenuItem(
-                        value: 'complete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.check_circle, size: 20, color: Colors.blue),
-                            SizedBox(width: 8),
-                            Text('Mark Complete', style: TextStyle(color: Colors.blue)),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  
-                  return items;
-                },
-              ),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => JobDetailsScreen(job: job),
-                  ),
-                ).then((_) {
-                  _loadJobs();
-                });
-              },
-            ),
-          )),
-        ],
-      ),
-    );
-  }
-
-  Widget _headerCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.work_outline, color: AppTheme.primaryBlue),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Assigned Jobs',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: AppTheme.darkBlue,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _emptyState() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 52,
-              color: AppTheme.primaryBlue.withOpacity(0.65),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'No jobs assigned yet',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                color: AppTheme.darkBlue,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Jobs will appear here once assignments are created.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.blueGrey.shade700,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _getStatusColor(JobStatus status) {
+  Color getStatusColor(JobStatus status) {
     switch (status) {
       case JobStatus.assigned:
         return Colors.orange;
@@ -323,18 +90,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
     }
   }
 
-  IconData _getStatusIcon(JobStatus status) {
-    switch (status) {
-      case JobStatus.assigned:
-        return Icons.assignment;
-      case JobStatus.inProgress:
-        return Icons.local_car_wash;
-      case JobStatus.completed:
-        return Icons.check_circle;
-    }
-  }
-
-  String _getStatusText(JobStatus status) {
+  String getStatusText(JobStatus status) {
     switch (status) {
       case JobStatus.assigned:
         return 'Assigned';
@@ -345,16 +101,131 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
     }
   }
 
-  String _getPaymentMethodText(String method) {
-    switch (method) {
-      case 'cash':
-        return 'Cash';
-      case 'visa':
-        return 'Visa Card';
-      case 'wallet':
-        return 'Wallet';
-      default:
-        return method;
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Employee Home'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: logout,
+          ),
+        ],
+      ),
+      body: FutureBuilder<List<Job>>(
+        future: jobsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Something went wrong: ${snapshot.error}'));
+          } else {
+            final jobs = snapshot.data ?? [];
+            if (jobs.isEmpty) {
+              return const Center(child: Text('No jobs assigned yet'));
+            }
+            return RefreshIndicator(
+              onRefresh: () {
+                setState(() {
+                  jobsFuture = fetchJobs();
+                });
+                return jobsFuture!;
+              },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(10),
+                itemCount: jobs.length,
+                itemBuilder: (context, index) {
+                  final job = jobs[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    elevation: 3,
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: getStatusColor(job.status).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.local_car_wash,
+                          color: getStatusColor(job.status),
+                          size: 24,
+                        ),
+                      ),
+                      title: Text(job.serviceType),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (job.customerName.isNotEmpty && job.customerName != 'Customer')
+                            Text('Customer: ${job.customerName}'),
+                          if (job.vehiclePlate.isNotEmpty)
+                            Text('Car: ${job.vehiclePlate}'),
+                          if (job.addressText != null && job.addressText!.isNotEmpty)
+                            Text('Location: ${job.addressText}'),
+                          Text('Date: ${job.scheduledDate.day}/${job.scheduledDate.month}/${job.scheduledDate.year} ${job.scheduledTime}'),
+                          if (job.paymentMethod.isNotEmpty)
+                            Text('Payment: ${job.paymentMethod.toUpperCase()}'),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: getStatusColor(job.status).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              getStatusText(job.status),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: getStatusColor(job.status),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'view') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => JobDetailsScreen(job: job),
+                              ),
+                            ).then((_) {
+                              setState(() {
+                                jobsFuture = fetchJobs();
+                              });
+                            });
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'view',
+                            child: Text('View Details'),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => JobDetailsScreen(job: job),
+                          ),
+                        ).then((_) {
+                          setState(() {
+                            jobsFuture = fetchJobs();
+                          });
+                        });
+                      },
+                    ),
+                  );
+                },
+              ),
+            );
+          }
+        },
+      ),
+    );
   }
 }

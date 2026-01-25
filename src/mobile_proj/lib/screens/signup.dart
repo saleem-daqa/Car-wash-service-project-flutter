@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'registerpart.dart';  
-import 'dart:convert';
 import 'package:http/http.dart' as http;
+
+import '../config/api_config.dart';
+import 'registerpart.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({Key? key}) : super(key: key);
@@ -13,60 +15,87 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
-  final String apiUrl = 'http://localhost/carwash/register.php'; 
+  bool _loading = false;
 
-//Flutter sends an HTTP POST request
-  void signup() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        final response = await http.post(
-          Uri.parse(apiUrl),
-          body: {
-            'name': nameController.text.trim(),
-            'email': emailController.text.trim(),
-            'password': passwordController.text.trim(),
-            'role': 'CUSTOMER',
-          },
-        );
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
 
-        print('Response status: ${response.statusCode}');
-        print('Response body: ${response.body}');
+  void _showMsg(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
 
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (data['status'] == 'success' && data['user_id'] != null) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => RegistrationScreen(
-                  userId: data['user_id'],
-                  username: nameController.text.trim(),
-                  email: emailController.text.trim(),
-                ),
-              ),
-            );
-          } else {
-            String message = data['message'] ?? 'Registration failed';
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(message)),
-            );
-          }
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Server error: ${response.statusCode}')),
-          );
+  Future<void> signup() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_loading) return;
+
+    setState(() => _loading = true);
+
+    try {
+      final uri = Uri.parse(ApiConfig.registerUrl);
+
+      final body = jsonEncode({
+        "full_name": nameController.text.trim(),
+        "email": emailController.text.trim(),
+        "phone": phoneController.text.trim(),
+        "password": passwordController.text.trim(),
+      });
+
+      final response = await http.post(
+        uri,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: body,
+      );
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      final bool ok = data["ok"] == true;
+
+      if (response.statusCode == 200 && ok) {
+        final userId = data["data"]?["user_id"];
+
+        if (userId == null) {
+          _showMsg("Registered but user_id is missing.");
+          return;
         }
-      } catch (e) {
-        print('Exception caught: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RegistrationScreen(
+              userId: userId,
+              username: nameController.text.trim(),
+              email: emailController.text.trim(),
+            ),
+          ),
         );
+        return;
       }
+
+      final msg = data["error"] ?? data["message"] ?? "Could not register";
+      _showMsg(msg.toString());
+    } catch (e) {
+      _showMsg("Something went wrong: $e");
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -80,13 +109,11 @@ class _SignupPageState extends State<SignupPage> {
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         backgroundColor: Colors.white,
         leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.black),
         ),
       ),
-      body: SingleChildScrollView(  
+      body: SingleChildScrollView(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
           width: double.infinity,
@@ -120,6 +147,7 @@ class _SignupPageState extends State<SignupPage> {
                     return null;
                   },
                 ),
+
                 inputFile(
                   label: "Email",
                   controller: emailController,
@@ -128,15 +156,34 @@ class _SignupPageState extends State<SignupPage> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter your email';
                     }
-                    final emailRegex = RegExp(
-                      r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$",
-                    );
-                    if (!emailRegex.hasMatch(value)) {
+                    final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+                    if (!emailRegex.hasMatch(value.trim())) {
                       return 'Enter a valid email address';
                     }
                     return null;
                   },
                 ),
+
+                inputFile(
+                  label: "Phone Number",
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    final phoneRegex = RegExp(r'^[0-9+\-\s()]+$');
+                    if (!phoneRegex.hasMatch(value.trim())) {
+                      return 'Enter a valid phone number';
+                    }
+                    final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+                    if (digitsOnly.length < 8) {
+                      return 'Phone number must be at least 8 digits';
+                    }
+                    return null;
+                  },
+                ),
+
                 inputFile(
                   label: "Password",
                   obscureText: true,
@@ -151,6 +198,7 @@ class _SignupPageState extends State<SignupPage> {
                     return null;
                   },
                 ),
+
                 inputFile(
                   label: "Confirm Password",
                   obscureText: true,
@@ -167,8 +215,9 @@ class _SignupPageState extends State<SignupPage> {
                 ),
 
                 const SizedBox(height: 30),
+
                 ElevatedButton(
-                  onPressed: signup,
+                  onPressed: _loading ? null : signup,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 60),
                     backgroundColor: const Color(0xff0095FF),
@@ -178,14 +227,20 @@ class _SignupPageState extends State<SignupPage> {
                     elevation: 8,
                     shadowColor: Colors.blueAccent.withOpacity(0.5),
                   ),
-                  child: const Text(
-                    "Sign up",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _loading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          "Sign up",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
 
                 const SizedBox(height: 15),
@@ -194,9 +249,7 @@ class _SignupPageState extends State<SignupPage> {
                   children: <Widget>[
                     const Text("Already have an account?"),
                     GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
+                      onTap: () => Navigator.pop(context),
                       child: const Text(
                         " Login",
                         style: TextStyle(

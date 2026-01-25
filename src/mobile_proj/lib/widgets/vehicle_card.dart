@@ -11,36 +11,24 @@ class VehicleCard extends StatelessWidget {
     required this.onTap,
   });
 
-  IconData _getVehicleIcon(String type) {
-    switch (type) {
-      case 'Car/Sedan':
-        return Icons.directions_car;
-      case 'Bus/Truck':
-        return Icons.directions_bus;
-      case 'Motorcycle/Scooter':
-        return Icons.motorcycle;
-      default:
-        return Icons.directions_car;
-    }
+  IconData getVehicleIcon(String type) {
+    if (type == 'Car/Sedan') return Icons.directions_car;
+    if (type == 'Bus/Truck') return Icons.directions_bus;
+    if (type == 'Motorcycle/Scooter') return Icons.motorcycle;
+    return Icons.directions_car;
   }
 
-  Color _getVehicleColor(String type) {
-    switch (type) {
-      case 'Car/Sedan':
-        return Colors.blue;
-      case 'Bus/Truck':
-        return Colors.orange;
-      case 'Motorcycle/Scooter':
-        return Colors.purple;
-      default:
-        return Colors.blue;
-    }
+  Color getVehicleColor(String type) {
+    if (type == 'Car/Sedan') return Colors.blue;
+    if (type == 'Bus/Truck') return Colors.orange;
+    if (type == 'Motorcycle/Scooter') return Colors.purple;
+    return Colors.blue;
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _getVehicleColor(vehicle.type);
-    final icon = _getVehicleIcon(vehicle.type);
+    final color = getVehicleColor(vehicle.type);
+    final icon = getVehicleIcon(vehicle.type);
 
     return InkWell(
       onTap: onTap,

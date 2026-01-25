@@ -6,20 +6,20 @@ import 'change_password_screen.dart';
 import 'loginscreen.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
-  const CustomerHomeScreen({Key? key}) : super(key: key);
+  final int initialTab;
+  
+  const CustomerHomeScreen({Key? key, this.initialTab = 0}) : super(key: key);
 
   @override
   State<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
 }
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
-  int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    BookingScreen(),
-    WalletScreen(),
-    BookingsScreen(),
-  ];
+  late int _selectedIndex;
+  final GlobalKey<BookingsScreenState> _bookingsKey = GlobalKey<BookingsScreenState>();
+
+  late final List<Widget> _pages;
 
   final List<String> _pageTitles = const [
     'Booking',
@@ -27,26 +27,60 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     'Bookings',
   ];
 
+  final GlobalKey<WalletScreenState> _walletKey = GlobalKey<WalletScreenState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialTab;
+    _pages = [
+      BookingScreen(),
+      WalletScreen(key: _walletKey),
+      BookingsScreen(key: _bookingsKey),
+    ];
+    if (widget.initialTab == 2) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_bookingsKey.currentState != null) {
+          _bookingsKey.currentState!.loadBookings();
+        }
+      });
+    }
+  }
+
+  void refreshBookings() {
+    if (_bookingsKey.currentState != null) {
+      _bookingsKey.currentState!.loadBookings();
+    }
+  }
+
   void _onItemTapped(int index) {
-    if (_selectedIndex == index) return;
+    if (_selectedIndex == index) {
+      if (index == 1 && _walletKey.currentState != null) {
+        _walletKey.currentState!.refreshWallet();
+      }
+      if (index == 2) {
+        refreshBookings();
+      }
+      return;
+    }
     setState(() => _selectedIndex = index);
+    if (index == 1 && _walletKey.currentState != null) {
+      _walletKey.currentState!.refreshWallet();
+    }
+    if (index == 2) {
+      refreshBookings();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-
-      /// ---- APP BAR ----
       appBar: _buildAppBar(),
-
-      /// ---- BODY ----
       body: IndexedStack(
         index: _selectedIndex,
         children: _pages,
       ),
-
-      /// ---- FLOATING BOTTOM NAV ----
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16),
         child: Container(
@@ -92,13 +126,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  /// ---- APP BAR ----
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       elevation: 6,
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.white,
       shadowColor: Colors.black.withOpacity(0.08),
+      automaticallyImplyLeading: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           bottom: Radius.circular(24),
@@ -185,8 +219,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   SizedBox(width: 8),
                   Text('Logout', style: TextStyle(color: Colors.red)),
                 ],
-              ),
             ),
+          ),
           ],
         ),
       ],

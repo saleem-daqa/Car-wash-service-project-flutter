@@ -3,6 +3,7 @@ import 'customer_home_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 
 class RegistrationScreen extends StatefulWidget {
   final int userId;
@@ -22,135 +23,162 @@ class RegistrationScreen extends StatefulWidget {
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController phoneController = TextEditingController();
   final TextEditingController plateNumberController = TextEditingController();
   final TextEditingController carBrandController = TextEditingController();
   final TextEditingController carModelController = TextEditingController();
 
   void submit() async {
-  if (_formKey.currentState!.validate()) {
-    print('Validation passed, sending request...');
+    if (_formKey.currentState!.validate()) {
+      try {
+        final response = await http.post(
+          Uri.parse(ApiConfig.completeRegistrationUrl),
+          body: {
+            'user_id': widget.userId.toString(),
+            'plate_number': plateNumberController.text.trim(),
+            'car_brand': carBrandController.text.trim(),
+            'car_model': carModelController.text.trim(),
+          },
+        );
 
-    try {
-      final response = await http.post(
-        Uri.parse('http://localhost/carwash/complete_registration.php'),
-        body: {
-          'user_id': widget.userId.toString(),
-          'phone': phoneController.text.trim(),
-          'plate_number': plateNumberController.text.trim(),
-          'car_brand': carBrandController.text.trim(),
-          'car_model': carModelController.text.trim(),
-        },
-      );
-
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        print('Decoded response: $data');
-
-        if (data['status'] == 'success') {
-          // Save user_id to SharedPreferences
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('user_id', widget.userId);
+        if (response.statusCode == 200) {
+          final responseBody = response.body.trim();
           
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
-          );
+          if (responseBody.isEmpty || !responseBody.startsWith('{')) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Server error, please try again'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+
+          try {
+            final data = json.decode(responseBody);
+
+            if (data['status'] == 'success') {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setInt('user_id', widget.userId);
+              
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(data['message'] ?? 'Registration failed'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          } catch (jsonError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Server response error: $jsonError'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Failed to complete registration')),
+            const SnackBar(
+              content: Text('Could not connect to server'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
-      } else {
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error connecting to server')),
+          SnackBar(
+            content: Text('Something went wrong: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
-    } catch (e) {
-      print('Exception in submit: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
     }
-  } else {
-    print('Validation failed');
-  }
-}
-
-
-  Widget inputField({
-    required String label,
-    required TextEditingController controller,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.25),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        validator: validator,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: Text('Complete Registration for ${widget.username}'),
-        backgroundColor: Colors.blueAccent,
-        elevation: 4,
+        title: const Text(
+          'Complete Registration',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+          padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                inputField(
-                  label: 'Phone Number',
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Enter phone number' : null,
+                const SizedBox(height: 20),
+                Card(
+                  elevation: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person, size: 40, color: Color(0xff0095FF)),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.username,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.email,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Add Your Vehicle',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0B3BAA),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 inputField(
                   label: 'Car Plate Number',
                   controller: plateNumberController,
+                  icon: Icons.confirmation_number,
                   validator: (value) =>
                       value == null || value.isEmpty ? 'Enter plate number' : null,
                 ),
                 inputField(
                   label: 'Car Brand',
                   controller: carBrandController,
+                  icon: Icons.directions_car,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Enter car brand';
@@ -165,6 +193,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   label: 'Car Model (Year - Numbers Only)',
                   controller: carModelController,
                   keyboardType: TextInputType.number,
+                  icon: Icons.calendar_today,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Enter car model year';
@@ -175,30 +204,76 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 40),
-                ElevatedButton(
-                  onPressed: submit,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 60),
-                    backgroundColor: const Color(0xff0095FF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: submit,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 56),
+                      backgroundColor: const Color(0xff0095FF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    elevation: 8,
-                    shadowColor: Colors.blueAccent.withOpacity(0.5),
-                  ),
-                  child: const Text(
-                    'Complete Registration',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                      color: Colors.white,
+                    child: const Text(
+                      'Complete Registration',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget inputField({
+    required String label,
+    required TextEditingController controller,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+    IconData? icon,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        validator: validator,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: icon != null ? Icon(icon, color: const Color(0xff0095FF)) : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xff0095FF), width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 2),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         ),
       ),
     );

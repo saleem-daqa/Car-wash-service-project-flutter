@@ -8,15 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-$conn = new mysqli("localhost", "root", "1234", "car_wash_db");
-
-if ($conn->connect_error) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Database connection failed'
-    ]);
-    exit;
-}
+require_once 'db.php';
 
 $customer_id = isset($_POST['customer_id']) ? intval($_POST['customer_id']) : 0;
 
@@ -29,7 +21,7 @@ if ($customer_id === 0) {
 }
 
 $stmt = $conn->prepare(
-    "SELECT car_id, plate_number, brand, model, color, notes 
+    "SELECT car_id, plate_number, type, brand, model, color, notes 
      FROM customer_cars 
      WHERE customer_id = ? 
      ORDER BY created_at DESC"
@@ -53,6 +45,7 @@ while ($row = $result->fetch_assoc()) {
     $vehicles[] = [
         'car_id' => $row['car_id'],
         'plate_number' => $row['plate_number'],
+        'type' => $row['type'],
         'brand' => $row['brand'],
         'model' => $row['model'],
         'color' => $row['color'],

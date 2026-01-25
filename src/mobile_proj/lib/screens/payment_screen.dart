@@ -19,10 +19,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool isProcessing = false;
 
   bool canPay() {
-    if (walletBalance >= widget.bookingAmount) {
-      return true;
-    }
-    return false;
+    return walletBalance >= widget.bookingAmount;
   }
 
   void processPayment() {
@@ -52,7 +49,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Payment of \$${widget.bookingAmount.toStringAsFixed(2)} successful!'),
+          content: Text('Payment successful!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -152,7 +149,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                       Text(
-                        '\$${widget.bookingAmount.toStringAsFixed(2)}',
+                        '${widget.bookingAmount.toStringAsFixed(2)} ₪',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -192,7 +189,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    '\$${walletBalance.toStringAsFixed(2)}',
+                    '${walletBalance.toStringAsFixed(2)} ₪',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -259,7 +256,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                       Text(
-                        '\$${widget.bookingAmount.toStringAsFixed(2)}',
+                        '${widget.bookingAmount.toStringAsFixed(2)} ₪',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -277,7 +274,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                       Text(
-                        '\$${balanceAfter.toStringAsFixed(2)}',
+                        '${balanceAfter.toStringAsFixed(2)} ₪',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -312,13 +309,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
- VoidCallback? _buildPayButtonHandler() {
-  if (canPay() && !isProcessing) {
-    return processPayment;
-  } else {
+  VoidCallback? _buildPayButtonHandler() {
+    if (canPay() && !isProcessing) {
+      return processPayment;
+    }
     return null;
   }
-}
 
 
   Widget _buildButtonChild() {
@@ -331,15 +327,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
         ),
       );
-    } else {
-      return const Text(
-        'Pay Now',
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-      );
     }
+    return const Text(
+      'Pay Now',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      ),
+    );
   }
 }

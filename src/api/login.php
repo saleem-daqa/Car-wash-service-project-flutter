@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-include "db.php";
+require_once 'db.php';
 
 $email = $_POST['email'] ?? '';
 $password = $_POST['password'] ?? '';

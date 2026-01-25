@@ -1,54 +1,73 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header('Content-Type: application/json');
+header("Content-Type: application/json; charset=UTF-8");
 
-$servername = "localhost";
-$username = "root";
-$password = "1234";  
-$dbname = "car_wash_db";
+require_once __DIR__ . "/helpers.php";
+require_once __DIR__ . "/db.php";
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+require_post();
 
-if ($conn->connect_error) {
-    echo json_encode(['status' => 'error', 'message' => 'Connection failed: ' . $conn->connect_error]);
-    exit();
+$input = get_json_input();
+if (!$input) {
+    error("Invalid JSON body", 400);
 }
 
-$name = isset($_POST['name']) ? trim($_POST['name']) : '';
-$email = isset($_POST['email']) ? trim($_POST['email']) : '';
-$password = isset($_POST['password']) ? trim($_POST['password']) : '';
-$role = isset($_POST['role']) ? trim($_POST['role']) : 'CUSTOMER';
+$full_name = clean($input["full_name"] ?? $input["name"] ?? "");
+$email     = clean($input["email"] ?? "");
+$phone     = clean($input["phone"] ?? "");
+$password  = $input["password"] ?? "";
+$role = "CUSTOMER";
 
-if (empty($name) || empty($email) || empty($password) || empty($role)) {
-    echo json_encode(['status' => 'error', 'message' => 'Please fill all required fields']);
-    exit();
+if ($full_name === "" || $email === "" || $phone === "" || $password === "" || $role === "") {
+    error("Please fill all required fields (full_name, email, phone, password, role)", 400);
 }
 
-$stmt = $conn->prepare("SELECT user_id FROM users WHERE email = ?");
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    error("Invalid email format", 400);
+}
+
+if (strlen($password) < 6) {
+    error("Password must be at least 6 characters", 400);
+}
+
+$valid_roles = ["CUSTOMER", "EMPLOYEE", "MANAGER"];
+if (!in_array($role, $valid_roles)) {
+    error("Invalid role", 400);
+}
+
+$stmt = $conn->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1");
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $stmt->store_result();
 if ($stmt->num_rows > 0) {
-    echo json_encode(['status' => 'error', 'message' => 'Email already registered']);
     $stmt->close();
-    $conn->close();
-    exit();
+    error("Email already registered", 409);
 }
 $stmt->close();
 
-$phone = ''; 
+$stmt = $conn->prepare("SELECT user_id FROM users WHERE phone = ? LIMIT 1");
+$stmt->bind_param("s", $phone);
+$stmt->execute();
+$stmt->store_result();
+if ($stmt->num_rows > 0) {
+    $stmt->close();
+    error("Phone already registered", 409);
+}
+$stmt->close();
 
-$stmt = $conn->prepare("INSERT INTO users (full_name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, ?)");
-$stmt->bind_param("sssss", $name, $email, $phone, $password, $role);
+$stmt = $conn->prepare("
+    INSERT INTO users (full_name, email, phone, password_hash, role, is_active)
+    VALUES (?, ?, ?, ?, ?, 1)
+");
+$stmt->bind_param("sssss", $full_name, $email, $phone, $password, $role);
 
-if ($stmt->execute()) {
-    echo json_encode(['status' => 'success', 'message' => 'Registration successful', 'user_id' => $stmt->insert_id]);
-} else {
-    echo json_encode(['status' => 'error', 'message' => 'Failed to register user']);
+if (!$stmt->execute()) {
+    $err = $stmt->error;
+    $stmt->close();
+    error("Failed to register user: " . $err, 500);
 }
 
+$user_id = $stmt->insert_id;
 $stmt->close();
-$conn->close();
+
+success(["user_id" => $user_id], "Registration successful");
 ?>

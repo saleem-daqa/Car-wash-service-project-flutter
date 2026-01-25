@@ -8,22 +8,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-$conn = new mysqli("localhost", "root", "1234", "car_wash_db");
-
-if ($conn->connect_error) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Database connection failed'
-    ]);
-    exit;
-}
+require_once 'db.php';
 
 $customer_id = isset($_POST['customer_id']) ? intval($_POST['customer_id']) : 0;
-$plate_number = $_POST['plate_number'] ?? '';
-$brand = $_POST['car_brand'] ?? $_POST['brand'] ?? '';
-$model = $_POST['car_model'] ?? $_POST['model'] ?? '';
-$color = $_POST['color'] ?? '';
-$notes = $_POST['notes'] ?? '';
+$plate_number = trim($_POST['plate_number'] ?? '');
+$type = trim($_POST['type'] ?? '');
+$brand = trim($_POST['car_brand'] ?? $_POST['brand'] ?? '');
+$model = trim($_POST['car_model'] ?? $_POST['model'] ?? '');
+$color = trim($_POST['color'] ?? '');
+$notes = trim($_POST['notes'] ?? '');
 
 if ($customer_id === 0 || empty($plate_number) || empty($brand) || empty($model)) {
     echo json_encode([
@@ -33,7 +26,6 @@ if ($customer_id === 0 || empty($plate_number) || empty($brand) || empty($model)
     exit;
 }
 
-// Check if plate number already exists for this customer
 $check_stmt = $conn->prepare("SELECT car_id FROM customer_cars WHERE customer_id = ? AND plate_number = ?");
 $check_stmt->bind_param("is", $customer_id, $plate_number);
 $check_stmt->execute();
@@ -51,8 +43,8 @@ if ($check_result->num_rows > 0) {
 $check_stmt->close();
 
 $insert_stmt = $conn->prepare(
-    "INSERT INTO customer_cars (customer_id, plate_number, brand, model, color, notes) 
-     VALUES (?, ?, ?, ?, ?, ?)"
+    "INSERT INTO customer_cars (customer_id, plate_number, type, brand, model, color, notes) 
+     VALUES (?, ?, ?, ?, ?, ?, ?)"
 );
 
 if (!$insert_stmt) {
@@ -64,7 +56,7 @@ if (!$insert_stmt) {
     exit;
 }
 
-$insert_stmt->bind_param("isssss", $customer_id, $plate_number, $brand, $model, $color, $notes);
+$insert_stmt->bind_param("issssss", $customer_id, $plate_number, $type, $brand, $model, $color, $notes);
 
 if ($insert_stmt->execute()) {
     echo json_encode([

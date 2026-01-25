@@ -8,23 +8,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-$conn = new mysqli("localhost", "root", "1234", "car_wash_db");
-
-if ($conn->connect_error) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Database connection failed'
-    ]);
-    exit;
-}
+require_once 'db.php';
 
 $car_id = isset($_POST['car_id']) ? intval($_POST['car_id']) : 0;
 $customer_id = isset($_POST['customer_id']) ? intval($_POST['customer_id']) : 0;
-$plate_number = $_POST['plate_number'] ?? '';
-$brand = $_POST['car_brand'] ?? $_POST['brand'] ?? '';
-$model = $_POST['car_model'] ?? $_POST['model'] ?? '';
-$color = $_POST['color'] ?? '';
-$notes = $_POST['notes'] ?? '';
+$plate_number = trim($_POST['plate_number'] ?? '');
+$type = trim($_POST['type'] ?? '');
+$brand = trim($_POST['car_brand'] ?? $_POST['brand'] ?? '');
+$model = trim($_POST['car_model'] ?? $_POST['model'] ?? '');
+$color = trim($_POST['color'] ?? '');
+$notes = trim($_POST['notes'] ?? '');
 
 if ($car_id === 0 || $customer_id === 0 || empty($plate_number) || empty($brand) || empty($model)) {
     echo json_encode([
@@ -79,7 +72,7 @@ $check_stmt->close();
 
 $update_stmt = $conn->prepare(
     "UPDATE customer_cars 
-     SET plate_number = ?, brand = ?, model = ?, color = ?, notes = ? 
+     SET plate_number = ?, type = ?, brand = ?, model = ?, color = ?, notes = ? 
      WHERE car_id = ? AND customer_id = ?"
 );
 
@@ -92,7 +85,7 @@ if (!$update_stmt) {
     exit;
 }
 
-$update_stmt->bind_param("sssssii", $plate_number, $brand, $model, $color, $notes, $car_id, $customer_id);
+$update_stmt->bind_param("ssssssii", $plate_number, $type, $brand, $model, $color, $notes, $car_id, $customer_id);
 
 if ($update_stmt->execute()) {
     echo json_encode([

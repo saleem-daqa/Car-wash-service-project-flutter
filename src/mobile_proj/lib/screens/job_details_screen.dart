@@ -2,22 +2,116 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/job.dart';
 import '../theme/app_theme.dart';
-import '../services/job_service.dart';
-import '../services/wallet_service.dart';
-import '../services/booking_service.dart';
-import '../models/booking.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 
 class JobDetailsScreen extends StatefulWidget {
   final Job? job;
+  final String? bookingId;
 
-  const JobDetailsScreen({super.key, this.job});
+  const JobDetailsScreen({super.key, this.job, this.bookingId});
 
   @override
   State<JobDetailsScreen> createState() => _JobDetailsScreenState();
 }
 
 class _JobDetailsScreenState extends State<JobDetailsScreen> {
-  final WalletService _walletService = WalletService();
+  Job? _job;
+  Map<String, dynamic>? _jobDetails;
+  bool _isLoading = false;
+  bool _isLoadingDetails = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _job = widget.job;
+    if (widget.bookingId != null || widget.job != null) {
+      _loadJobDetails();
+    } else {
+      _isLoadingDetails = false;
+    }
+  }
+
+  Future<void> _loadJobDetails() async {
+    final bookingId = widget.bookingId ?? widget.job?.id;
+    if (bookingId == null) {
+      setState(() => _isLoadingDetails = false);
+      return;
+    }
+
+    setState(() => _isLoadingDetails = true);
+
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.bookingGetDetailsUrl}?booking_id=$bookingId'),
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success' && data['job'] != null) {
+          final jobData = data['job'];
+          setState(() {
+            _jobDetails = jobData;
+            _job = _job ?? Job(
+              id: jobData['booking_id'].toString(),
+              customerName: jobData['customer_name'] ?? 'Customer',
+              serviceType: jobData['service_name'] ?? 'Service',
+              vehiclePlate: jobData['car_plate'] ?? '',
+              latitude: jobData['latitude'] != null
+                  ? (jobData['latitude'] is String
+                      ? double.tryParse(jobData['latitude']) ?? 0.0
+                      : (jobData['latitude'] as num).toDouble())
+                  : 0.0,
+              longitude: jobData['longitude'] != null
+                  ? (jobData['longitude'] is String
+                      ? double.tryParse(jobData['longitude']) ?? 0.0
+                      : (jobData['longitude'] as num).toDouble())
+                  : 0.0,
+              addressText: jobData['address_text'] ?? '',
+              scheduledDate: jobData['scheduled_at'] != null
+                  ? DateTime.parse(jobData['scheduled_at'])
+                  : DateTime.now(),
+              scheduledTime: jobData['scheduled_at'] != null
+                  ? '${DateTime.parse(jobData['scheduled_at']).hour}:${DateTime.parse(jobData['scheduled_at']).minute.toString().padLeft(2, '0')}'
+                  : 'N/A',
+              paymentMethod: jobData['payment_method'] ?? 'cash',
+              status: _mapStatusFromApi(jobData['status'] ?? 'ASSIGNED'),
+            );
+            if (_job != null) {
+              _job!.status = _mapStatusFromApi(jobData['status'] ?? 'ASSIGNED');
+            }
+            _isLoadingDetails = false;
+          });
+        } else {
+          setState(() => _isLoadingDetails = false);
+        }
+      } else {
+        setState(() => _isLoadingDetails = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingDetails = false);
+      }
+    }
+  }
+
+  JobStatus _mapStatusFromApi(String apiStatus) {
+    switch (apiStatus.toUpperCase()) {
+      case 'ASSIGNED':
+      case 'CONFIRMED':
+        return JobStatus.assigned;
+      case 'IN_PROGRESS':
+        return JobStatus.inProgress;
+      case 'COMPLETED':
+        return JobStatus.completed;
+      default:
+        return JobStatus.assigned;
+    }
+  }
 
   void _openMap(Job job) async {
     if (!mounted) return;
@@ -54,37 +148,74 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     }
   }
 
-  void _startJob() {
-    if (widget.job == null) return;
-    
-    JobService().updateJobStatus(widget.job!.id, JobStatus.inProgress);
-    
-    try {
-      BookingService().updateBookingStatus(widget.job!.id, BookingStatus.inProgress);
+  Future<void> _startJob() async {
+    final bookingId = widget.bookingId ?? widget.job?.id;
+    if (bookingId == null) return;
+
+    setState(() => _isLoading = true);
+
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                final employeeId = prefs.getInt('user_id') ?? 0;
+                
+                if (employeeId == 0) {
+                  throw Exception('Employee ID not found');
+                }
+
+                final response = await http.post(
+                  Uri.parse(ApiConfig.bookingUpdateStatusUrl),
+                  body: {
+                    'booking_id': bookingId,
+                    'action': 'start',
+                    'employee_id': employeeId.toString(),
+                  },
+                );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') {
+          await _loadJobDetails();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Job started successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? 'Could not start job'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Server error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Something went wrong: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    
-    setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Job started'),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 
-  void _finishJob() {
-    if (widget.job == null) return;
-
-    final bookingService = BookingService();
-    Booking? booking;
-    try {
-      booking = bookingService.bookings.firstWhere((b) => b.id == widget.job!.id);
-    } catch (e) {
-      booking = null;
-    }
-
-    final servicePrice = booking?.price ?? 0.0;
+  Future<void> _finishJob() async {
+    final bookingId = widget.bookingId ?? widget.job?.id;
+    if (bookingId == null) return;
 
     showDialog(
       context: context,
@@ -97,27 +228,68 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              
-              JobService().updateJobStatus(widget.job!.id, JobStatus.completed);
-              
-              if (booking != null) {
-                BookingService().updateBookingStatus(widget.job!.id, BookingStatus.completed);
+              setState(() => _isLoading = true);
+
+              try {
+                final response = await http.post(
+                  Uri.parse(ApiConfig.bookingUpdateStatusUrl),
+                  body: {
+                    'booking_id': bookingId,
+                    'action': 'finish',
+                  },
+                );
+
+                if (!mounted) return;
+
+                if (response.statusCode == 200) {
+                  final data = json.decode(response.body);
+                  if (data['status'] == 'success') {
+                    await _loadJobDetails();
+                    final pointsAdded = data['points_added'] ?? 0;
+                    final pointsExact = data['points_exact'] ?? pointsAdded.toDouble();
+                    final pricePaid = data['price_paid'] ?? 0.0;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          pointsAdded > 0
+                              ? 'Job completed! ${pointsExact.toStringAsFixed(2)} points added (paid ${pricePaid.toStringAsFixed(0)} NIS, 15 NIS = 1 point).'
+                              : 'Job completed successfully!',
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
+                    if (mounted) Navigator.pop(context);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(data['message'] ?? 'Could not finish job'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Server error'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } finally {
+                if (mounted) setState(() => _isLoading = false);
               }
-              
-              _walletService.addPointsFromCompletedService(widget.job!.serviceType);
-              
-              setState(() {});
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Job completed! Points added to wallet.'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              
-              Navigator.pop(context);
             },
             child: const Text(
               'Confirm',
@@ -133,7 +305,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Job Details')),
-      body: widget.job == null ? _emptyState() : _details(context, widget.job!),
+      body: _isLoadingDetails
+          ? const Center(child: CircularProgressIndicator())
+          : (_job == null ? _emptyState() : _details(context, _job!)),
     );
   }
 
@@ -175,10 +349,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -188,9 +362,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       const SizedBox(width: 8),
                       Text(
                         j.id,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.darkBlue,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: AppTheme.darkBlue,
                           fontSize: 18,
                         ),
                       ),
@@ -198,10 +372,22 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   ),
                   const Divider(),
                   _buildDetailRow(Icons.person, 'Customer', j.customerName),
+                  if (_jobDetails != null && _jobDetails!['customer_phone'] != null) ...[
+                    const SizedBox(height: 12),
+                    _buildDetailRow(Icons.phone, 'Phone', _jobDetails!['customer_phone'] ?? 'N/A'),
+                  ],
+                  if (_jobDetails != null && _jobDetails!['customer_email'] != null) ...[
+                    const SizedBox(height: 12),
+                    _buildDetailRow(Icons.email, 'Email', _jobDetails!['customer_email'] ?? 'N/A'),
+                  ],
                   const SizedBox(height: 12),
                   _buildDetailRow(Icons.local_car_wash, 'Service', j.serviceType),
                   const SizedBox(height: 12),
                   _buildDetailRow(Icons.directions_car, 'Vehicle Plate', j.vehiclePlate),
+                  if (_jobDetails != null && _jobDetails!['car_brand'] != null) ...[
+                    const SizedBox(height: 12),
+                    _buildDetailRow(Icons.directions_car, 'Brand', '${_jobDetails!['car_brand']} ${_jobDetails!['car_model'] ?? ''}'),
+                  ],
                   const SizedBox(height: 12),
                   _buildDetailRow(Icons.calendar_today, 'Date', 
                     '${j.scheduledDate.day}/${j.scheduledDate.month}/${j.scheduledDate.year}'),
@@ -337,9 +523,18 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: _startJob,
-                          icon: const Icon(Icons.play_arrow),
-                          label: const Text('Start Job'),
+                          onPressed: _isLoading ? null : _startJob,
+                          icon: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Icon(Icons.play_arrow),
+                          label: Text(_isLoading ? 'Starting...' : 'Start Job'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green[600],
                             foregroundColor: Colors.white,
@@ -351,9 +546,18 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: _finishJob,
-                          icon: const Icon(Icons.check_circle),
-                          label: const Text('Finish Job'),
+                          onPressed: _isLoading ? null : _finishJob,
+                          icon: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Icon(Icons.check_circle),
+                          label: Text(_isLoading ? 'Finishing...' : 'Finish Job'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue[600],
                             foregroundColor: Colors.white,

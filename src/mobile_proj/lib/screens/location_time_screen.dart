@@ -177,12 +177,12 @@ class _LocationTimeScreenState extends State<LocationTimeScreen> {
       setState(() {
         locationTouched = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select your location or enter address manually'),
-          backgroundColor: Colors.red,
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please set your location'),
+            backgroundColor: Colors.red,
+          ),
+        );
       isValid = false;
     }
     if (selectedDate == null) {
@@ -430,35 +430,26 @@ void confirmBooking() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: const Text(
           'Location & Time',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
-            color: Colors.white,
-            shadows: [Shadow(blurRadius: 3, color: Colors.black45, offset: Offset(1, 1))],
           ),
         ),
-        backgroundColor: Colors.blue[800],
-        elevation: 6,
+        backgroundColor: Colors.white,
+        elevation: 0,
         centerTitle: true,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/car_wash_bg.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               Card(
-                color: Colors.white.withOpacity(0.92),
-                elevation: 6,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: locationTouched && latitude == null && !useManualAddress
@@ -503,7 +494,7 @@ void confirmBooking() {
                             style: const TextStyle(color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[700],
+                            backgroundColor: const Color(0xff0095FF),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           ),
@@ -606,8 +597,7 @@ void confirmBooking() {
               ),
               const SizedBox(height: 16),
               Card(
-                color: Colors.white.withOpacity(0.92),
-                elevation: 6,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: dateTouched && selectedDate == null
@@ -632,7 +622,6 @@ void confirmBooking() {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.95),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: dateTouched && selectedDate == null
@@ -667,8 +656,7 @@ void confirmBooking() {
               ),
               const SizedBox(height: 16),
               Card(
-                color: Colors.white.withOpacity(0.92),
-                elevation: 6,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: timeTouched && selectedTime == null
@@ -693,7 +681,6 @@ void confirmBooking() {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.95),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: timeTouched && selectedTime == null
@@ -749,8 +736,7 @@ void confirmBooking() {
               ),
               const SizedBox(height: 16),
               Card(
-                color: Colors.white.withOpacity(0.92),
-                elevation: 6,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),

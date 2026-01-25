@@ -3,6 +3,9 @@ import '../models/vehicle.dart';
 import '../models/wash_service.dart';
 import 'wash_service_screen.dart';
 import 'add_edit_vehicle_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../config/api_config.dart';
 
 class VehicleActionsScreen extends StatelessWidget {
   final Vehicle vehicle;
@@ -28,16 +31,70 @@ class VehicleActionsScreen extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              onVehicleDeleted();
-              Navigator.pop(context); // Go back to booking screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${vehicle.brand} ${vehicle.model} deleted'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
+            onPressed: () async {
+              Navigator.pop(context);
+              
+              if (vehicle.carId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Vehicle ID not found'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                final response = await http.post(
+                  Uri.parse(ApiConfig.deleteVehicleUrl),
+                  body: {'car_id': vehicle.carId.toString()},
+                );
+
+                if (response.statusCode == 200) {
+                  final data = json.decode(response.body);
+                  
+                  if (data['status'] == 'success') {
+                    onVehicleDeleted();
+                    Navigator.pop(context);
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(data['message'] ?? '${vehicle.brand} ${vehicle.model} deleted successfully'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(data['message'] ?? 'Failed to delete vehicle'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Server error'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             child: const Text(
               'Delete',
@@ -74,29 +131,6 @@ class VehicleActionsScreen extends StatelessWidget {
       MaterialPageRoute(
         builder: (context) => WashServiceScreen(
           vehicle: vehicle,
-          services: [
-            WashService(
-              name: 'Basic Wash',
-              description: 'Complete exterior hand wash with premium soap, thorough tire cleaning and shining, wheel wells cleaned, windows wiped, and quick interior wipe-down',
-              priceCar: 15,
-              priceBus: 25,
-              priceMotorcycle: 10,
-            ),
-            WashService(
-              name: 'Deluxe Wash',
-              description: 'Everything in Basic plus full interior vacuuming, dashboard and console cleaning, leather conditioning, tire dressing, and wax protection for lasting shine',
-              priceCar: 25,
-              priceBus: 40,
-              priceMotorcycle: 15,
-            ),
-            WashService(
-              name: 'Premium Wash',
-              description: 'Complete Deluxe service plus engine bay cleaning, undercarriage wash, clay bar treatment, premium wax application, and interior detailing with odor elimination',
-              priceCar: 40,
-              priceBus: 60,
-              priceMotorcycle: 25,
-            ),
-          ],
         ),
       ),
     );

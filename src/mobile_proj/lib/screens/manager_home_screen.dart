@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/section_card.dart';
 import '../theme/app_theme.dart';
-import 'employee_home_screen.dart';
 import 'manager_dashboard_screen.dart';
 import 'manage_services_teams_screen.dart';
 import 'manager_create_team_account_screen.dart';
@@ -89,7 +88,6 @@ class ManagerHomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Welcome Card
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -124,8 +122,6 @@ class ManagerHomeScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 16),
-
-          // Manager Dashboard
           SectionCard(
             number: 1,
             title: 'Dashboard',
@@ -144,14 +140,12 @@ class ManagerHomeScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 12),
-
-          // Create Team Accounts
           SectionCard(
             number: 2,
-            title: 'Create Team Accounts',
+            title: 'Create Employee Account',
             bullets: const [
-              'Create email & password for teams',
-              'Manage employee access',
+              'Create employee accounts',
+              'Assign employees to teams',
             ],
             onTap: () {
               Navigator.push(
@@ -164,8 +158,6 @@ class ManagerHomeScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 12),
-
-          // Services & Teams Management
           SectionCard(
             number: 3,
             title: 'Services & Teams',
@@ -183,25 +175,6 @@ class ManagerHomeScreen extends StatelessWidget {
             },
           ),
 
-          const SizedBox(height: 12),
-
-          // View Employee Home
-          SectionCard(
-            number: 4,
-            title: 'Employee View',
-            bullets: const [
-              'View assigned jobs',
-              'Monitor employee tasks',
-            ],
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const EmployeeHomeScreen(),
-                ),
-              );
-            },
-          ),
         ],
       ),
     );

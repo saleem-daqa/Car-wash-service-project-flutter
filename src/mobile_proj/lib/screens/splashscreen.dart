@@ -54,11 +54,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           _animations[_animationIndex],
           controller: _controller,
           onLoaded: (composition) {
-           /* _controller.duration = composition.duration * 0.5;*/
-           _controller.duration = Duration(
-            milliseconds: (composition.duration.inMilliseconds * 0.5).round(),
-          );
-
+            _controller.duration = Duration(
+              milliseconds: (composition.duration.inMilliseconds * 0.5).round(),
+            );
             _controller.forward();
           },
           fit: BoxFit.contain,
