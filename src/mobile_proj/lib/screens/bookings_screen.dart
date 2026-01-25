@@ -5,74 +5,118 @@ import 'rating_feedback_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({Key? key}) : super(key: key);
 
   @override
-  State<BookingsScreen> createState() => _BookingsScreenState();
+  State<BookingsScreen> createState() => BookingsScreenState();
 }
 
-class _BookingsScreenState extends State<BookingsScreen>
-    with AutomaticKeepAliveClientMixin {
-  int selectedTab = 0;
-  bool isLoading = true;
-  List<Booking> bookings = [];
+class BookingsScreenState extends State<BookingsScreen> {
 
-  @override
-  bool get wantKeepAlive => true;
+  int selectedTab = 0;
+  Future<List<Booking>>? currentBookingsFuture;
+  Future<List<Booking>>? pastBookingsFuture;
 
   @override
   void initState() {
     super.initState();
-    fetchBookings();
+    loadBookings();
   }
 
-  Future<void> fetchBookings() async {
+  void loadBookings() {
     setState(() {
-      isLoading = true;
+      currentBookingsFuture = fetchCurrentBookings();
+      pastBookingsFuture = fetchPastBookings();
     });
-
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('user_id') ?? 0;
-
-    final url = selectedTab == 0
-        ? 'http://localhost/carwash/get_current_bookings.php'
-        : 'http://localhost/carwash/get_past_bookings.php';
-
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        body: {
-          'user_id': userId.toString(),
-        },
-      );
-
-     if (response.statusCode == 200) {
-  final data = json.decode(response.body);
-
-  if (data['status'] == 'success') {
-    bookings = (data['bookings'] as List)
-        .map((e) => Booking.fromJson(e))
-        .toList();
-  } else {
-    bookings = [];
   }
-} else {
-        bookings = [];
-      }
-    } catch (e) {
-      bookings = [];
+
+  Future<List<Booking>> fetchCurrentBookings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final customerId = prefs.getInt('user_id') ?? 0;
+
+    if (customerId == 0) {
+      return [];
     }
 
-    setState(() {
-      isLoading = false;
-    });
+    final response = await http.post(
+      Uri.parse(ApiConfig.getCurrentBookingsUrl),
+      body: {'user_id': customerId.toString()},
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'success' && data['bookings'] != null) {
+        return (data['bookings'] as List).map((bookingData) {
+          return Booking.fromJson(bookingData);
+        }).toList();
+      }
+    }
+    return [];
+  }
+
+  Future<List<Booking>> fetchPastBookings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final customerId = prefs.getInt('user_id') ?? 0;
+
+    if (customerId == 0) {
+      return [];
+    }
+
+    final response = await http.post(
+      Uri.parse(ApiConfig.getPastBookingsUrl),
+      body: {'user_id': customerId.toString()},
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'success' && data['bookings'] != null) {
+        return (data['bookings'] as List).map((bookingData) {
+          return Booking.fromJson(bookingData);
+        }).toList();
+      }
+    }
+    return [];
+  }
+
+  String getStatusText(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return 'Pending';
+      case BookingStatus.confirmed:
+        return 'Confirmed';
+      case BookingStatus.assigned:
+        return 'Assigned';
+      case BookingStatus.inProgress:
+        return 'In Progress';
+      case BookingStatus.completed:
+        return 'Completed';
+      case BookingStatus.cancelled:
+        return 'Cancelled';
+    }
+  }
+
+  Color getStatusColor(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return Colors.orange;
+      case BookingStatus.confirmed:
+        return Colors.blue;
+      case BookingStatus.assigned:
+        return Colors.purple;
+      case BookingStatus.inProgress:
+        return const Color(0xff0095FF);
+      case BookingStatus.completed:
+        return Colors.green;
+      case BookingStatus.cancelled:
+        return Colors.red;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: Column(
@@ -98,15 +142,21 @@ class _BookingsScreenState extends State<BookingsScreen>
                       setState(() {
                         selectedTab = 0;
                       });
-                      fetchBookings();
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: _buildCurrentTabDecoration(),
+                      decoration: BoxDecoration(
+                        color: selectedTab == 0 ? const Color(0xff0095FF) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
                       child: Center(
                         child: Text(
                           'Current',
-                          style: _buildCurrentTabTextStyle(),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: selectedTab == 0 ? Colors.white : Colors.grey[600],
+                          ),
                         ),
                       ),
                     ),
@@ -118,15 +168,21 @@ class _BookingsScreenState extends State<BookingsScreen>
                       setState(() {
                         selectedTab = 1;
                       });
-                      fetchBookings();
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: _buildPastTabDecoration(),
+                      decoration: BoxDecoration(
+                        color: selectedTab == 1 ? const Color(0xff0095FF) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
                       child: Center(
                         child: Text(
                           'Past',
-                          style: _buildPastTabTextStyle(),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: selectedTab == 1 ? Colors.white : Colors.grey[600],
+                          ),
                         ),
                       ),
                     ),
@@ -135,49 +191,47 @@ class _BookingsScreenState extends State<BookingsScreen>
               ],
             ),
           ),
-          Expanded(child: _buildBookingsList()),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () {
+                loadBookings();
+                return Future.value();
+              },
+              child: FutureBuilder<List<Booking>>(
+                future: selectedTab == 0 ? currentBookingsFuture : pastBookingsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Oops: ${snapshot.error}'));
+                  } else {
+                    final bookings = snapshot.data ?? [];
+                    if (bookings.isEmpty) {
+                      return Center(
+                        child: Text(
+                          selectedTab == 0 ? 'No current bookings' : 'No past bookings',
+                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        ),
+                      );
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: bookings.length,
+                      itemBuilder: (context, index) {
+                        return buildBookingCard(bookings[index]);
+                      },
+                    );
+                  }
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildBookingsList() {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (bookings.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.calendar_today, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              selectedTab == 0 ? 'No current bookings' : 'No past bookings',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: bookings.length,
-      itemBuilder: (context, index) {
-        return _buildBookingCard(bookings[index]);
-      },
-    );
-  }
-
-  Widget _buildBookingCard(Booking booking) {
-    Color statusColor = _getStatusColor(booking.status);
-    String statusText = booking.getStatusText();
-
-    // Safe fallback for vehiclePlate (empty string if null)
-    final vehiclePlate = booking.vehiclePlate ?? '';
-
+  Widget buildBookingCard(Booking booking) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -194,7 +248,6 @@ class _BookingsScreenState extends State<BookingsScreen>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min, // Helps prevent overflow
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -202,56 +255,61 @@ class _BookingsScreenState extends State<BookingsScreen>
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       booking.serviceName,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis, // prevent overflow
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Booking #${booking.id}',
-                      style: TextStyle(color: Colors.grey[600]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
+                  color: getStatusColor(booking.status).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  statusText,
+                  getStatusText(booking.status),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: statusColor,
+                    color: getStatusColor(booking.status),
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            '${booking.scheduledDate.day}/${booking.scheduledDate.month}/${booking.scheduledDate.year} at ${booking.scheduledTime}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(
+                '${booking.scheduledDate.day}/${booking.scheduledDate.month}/${booking.scheduledDate.year} at ${booking.scheduledTime}',
+                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
-          Text(
-            vehiclePlate,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              Icon(Icons.directions_car, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(
+                booking.vehiclePlate,
+                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Row(
@@ -265,106 +323,60 @@ class _BookingsScreenState extends State<BookingsScreen>
                   color: Color(0xff0095FF),
                 ),
               ),
-              _buildActionButton(booking),
+              if (selectedTab == 0 && booking.status == BookingStatus.confirmed)
+                TextButton(
+                  onPressed: () {
+                    final bookingId = int.tryParse(booking.id.replaceAll('JOB-', '')) ?? 0;
+                    if (bookingId > 0) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PaymentScreen(
+                            bookingAmount: booking.price,
+                            bookingId: bookingId,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text(
+                    'Pay Now',
+                    style: TextStyle(
+                      color: Color(0xff0095FF),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              if (selectedTab == 1 && booking.status == BookingStatus.completed)
+                TextButton(
+                  onPressed: () {
+                    final bookingId = int.tryParse(booking.id.replaceAll('JOB-', '')) ?? 0;
+                    if (bookingId > 0) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RatingFeedbackScreen(
+                            bookingId: bookingId,
+                            serviceName: booking.serviceName,
+                          ),
+                        ),
+                      ).then((_) {
+                        loadBookings();
+                      });
+                    }
+                  },
+                  child: const Text(
+                    'Rate & Feedback',
+                    style: TextStyle(
+                      color: Color(0xff0095FF),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
             ],
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildActionButton(Booking booking) {
-    if (selectedTab == 0 && booking.status == BookingStatus.confirmed) {
-      return TextButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PaymentScreen(
-                bookingAmount: booking.price,
-                bookingId: int.parse(booking.id.replaceAll('JOB-', '')),
-              ),
-            ),
-          );
-        },
-        child: const Text(
-          'Pay Now',
-          style: TextStyle(
-            color: Color(0xff0095FF),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
-    }
-
-    if (selectedTab == 1 && booking.status == BookingStatus.completed) {
-      return TextButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => RatingFeedbackScreen(
-                bookingId: int.parse(booking.id.replaceAll('JOB-', '')),
-                serviceName: booking.serviceName,
-              ),
-            ),
-          );
-        },
-        child: const Text(
-          'Rate & Feedback',
-          style: TextStyle(
-            color: Color(0xff0095FF),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
-
-  Color _getStatusColor(BookingStatus status) {
-    switch (status) {
-      case BookingStatus.pending:
-        return Colors.orange;
-      case BookingStatus.confirmed:
-        return Colors.blue;
-      case BookingStatus.assigned:
-        return Colors.purple;
-      case BookingStatus.inProgress:
-        return const Color(0xff0095FF);
-      case BookingStatus.completed:
-        return Colors.green;
-      case BookingStatus.cancelled:
-        return Colors.red;
-    }
-  }
-
-  BoxDecoration _buildCurrentTabDecoration() {
-    return BoxDecoration(
-      color: selectedTab == 0 ? const Color(0xff0095FF) : Colors.transparent,
-      borderRadius: BorderRadius.circular(15),
-    );
-  }
-
-  TextStyle _buildCurrentTabTextStyle() {
-    return TextStyle(
-      fontWeight: FontWeight.w600,
-      color: selectedTab == 0 ? Colors.white : Colors.grey[600],
-    );
-  }
-
-  BoxDecoration _buildPastTabDecoration() {
-    return BoxDecoration(
-      color: selectedTab == 1 ? const Color(0xff0095FF) : Colors.transparent,
-      borderRadius: BorderRadius.circular(15),
-    );
-  }
-
-  TextStyle _buildPastTabTextStyle() {
-    return TextStyle(
-      fontWeight: FontWeight.w600,
-      color: selectedTab == 1 ? Colors.white : Colors.grey[600],
     );
   }
 }

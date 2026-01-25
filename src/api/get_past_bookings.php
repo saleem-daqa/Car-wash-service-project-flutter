@@ -4,15 +4,21 @@ header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
-include "db.php";
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit(0);
+}
 
-$user_id = $_POST['user_id'] ?? 0;
+require_once 'db.php';
+
+$user_id = $_POST['user_id'] ?? $_GET['user_id'] ?? 0;
 
 if ($user_id == 0) {
     echo json_encode([
         "status" => "error",
         "message" => "User ID missing"
     ]);
+    $conn->close();
     exit;
 }
 
@@ -32,14 +38,43 @@ $sql = "SELECT
         ORDER BY b.scheduled_at DESC";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
 
+if (!$stmt) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Prepare failed",
+        "error" => $conn->error
+    ]);
+    $conn->close();
+    exit;
+}
+
+$stmt->bind_param("i", $user_id);
+
+if (!$stmt->execute()) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Execute failed",
+        "error" => $stmt->error
+    ]);
+    $stmt->close();
+    $conn->close();
+    exit;
+}
+
+$result = $stmt->get_result();
 $bookings = [];
 
 while ($row = $result->fetch_assoc()) {
-    $bookings[] = $row;
+    $bookings[] = [
+        "id" => (int)$row["id"],
+        "service_name" => $row["service_name"],
+        "booking_date" => $row["booking_date"],
+        "booking_time" => $row["booking_time"],
+        "vehicle_plate" => $row["vehicle_plate"],
+        "price" => (float)$row["price"],
+        "status" => $row["status"]
+    ];
 }
 
 echo json_encode([

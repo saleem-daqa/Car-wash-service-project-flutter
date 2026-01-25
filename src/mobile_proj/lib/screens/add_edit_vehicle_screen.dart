@@ -83,7 +83,6 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
         'car_model': modelController.text.trim(),
         'color': '',
         'notes': '',
-        'type': selectedType!,
       };
 
       if (isEditing && widget.vehicleToEdit!.carId != null) {

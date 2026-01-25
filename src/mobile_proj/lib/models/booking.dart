@@ -34,55 +34,61 @@ class Booking {
     this.status = BookingStatus.pending,
   });
 
-factory Booking.fromJson(Map<String, dynamic> json) {
-  return Booking(
-    id: 'JOB-${json['id']}',
-    vehiclePlate: json['vehicle_plate'],
-    serviceName: json['service_name'],
-    price: double.parse(json['price'].toString()),
-    scheduledDate: DateTime.parse(json['booking_date']),
-    scheduledTime: json['booking_time'],
-    latitude: 0,
-    longitude: 0,
-    paymentMethod: '',
-    status: BookingStatusExtension.fromString(json['status']),
-  );
-}
-  String getStatusText() {
-    switch (status) {
-      case BookingStatus.pending:
-        return 'Pending';
-      case BookingStatus.confirmed:
-        return 'Confirmed';
-      case BookingStatus.assigned:
-        return 'Assigned';
-      case BookingStatus.inProgress:
-        return 'In Progress';
-      case BookingStatus.completed:
-        return 'Completed';
-      case BookingStatus.cancelled:
-        return 'Cancelled';
+  factory Booking.fromJson(Map<String, dynamic> json) {
+    DateTime scheduledDate = DateTime.now();
+    String scheduledTime = 'N/A';
+
+    if (json['booking_date'] != null) {
+      try {
+        if (json['booking_time'] != null) {
+          final dateStr = json['booking_date'].toString();
+          final timeStr = json['booking_time'].toString();
+          scheduledDate = DateTime.parse('$dateStr $timeStr:00');
+          scheduledTime = timeStr;
+        } else {
+          scheduledDate = DateTime.parse(json['booking_date'].toString());
+          scheduledTime = '${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}';
+        }
+      } catch (e) {
+        scheduledDate = DateTime.now();
+        scheduledTime = 'N/A';
+      }
     }
+
+    BookingStatus status = BookingStatus.pending;
+    final statusStr = (json['status'] ?? 'PENDING').toString().toUpperCase();
+    switch (statusStr) {
+      case 'PENDING':
+        status = BookingStatus.pending;
+        break;
+      case 'CONFIRMED':
+        status = BookingStatus.confirmed;
+        break;
+      case 'ASSIGNED':
+        status = BookingStatus.assigned;
+        break;
+      case 'IN_PROGRESS':
+        status = BookingStatus.inProgress;
+        break;
+      case 'COMPLETED':
+        status = BookingStatus.completed;
+        break;
+      case 'CANCELLED':
+        status = BookingStatus.cancelled;
+        break;
+    }
+
+    return Booking(
+      id: 'JOB-${json['id'] ?? json['booking_id']}',
+      vehiclePlate: json['vehicle_plate'] ?? '',
+      serviceName: json['service_name'] ?? 'Service',
+      price: (json['price'] ?? 0.0).toDouble(),
+      scheduledDate: scheduledDate,
+      scheduledTime: scheduledTime,
+      latitude: 0.0,
+      longitude: 0.0,
+      paymentMethod: 'cash',
+      status: status,
+    );
   }
-  
-}
-extension BookingStatusExtension on BookingStatus {
-static BookingStatus fromString(String status) {
-switch (status.toUpperCase()) {
-case 'PENDING':
-return BookingStatus.pending;
-case 'CONFIRMED':
-return BookingStatus.confirmed;
-case 'ASSIGNED':
-return BookingStatus.assigned;
-case 'IN_PROGRESS':
-return BookingStatus.inProgress;
-case 'COMPLETED':
-return BookingStatus.completed;
-case 'CANCELLED':
-return BookingStatus.cancelled;
-default:
-return BookingStatus.pending;
-}
-}
 }

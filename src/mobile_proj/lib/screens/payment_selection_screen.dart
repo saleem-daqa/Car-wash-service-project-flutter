@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/job.dart';
-import '../models/booking.dart';
+import '../config/api_config.dart';
+import 'customer_home_screen.dart';
 
 class PaymentSelectionScreen extends StatefulWidget {
   final double bookingAmount;
@@ -18,7 +18,7 @@ class PaymentSelectionScreen extends StatefulWidget {
   final String addressText;
 
   const PaymentSelectionScreen({
-    Key? key,
+    super.key,
     required this.bookingAmount,
     required this.bookingId,
     required this.serviceName,
@@ -29,7 +29,7 @@ class PaymentSelectionScreen extends StatefulWidget {
     required this.scheduledTime,
     required this.notes,
     required this.addressText,
-  }) : super(key: key);
+  });
 
   @override
   State<PaymentSelectionScreen> createState() => _PaymentSelectionScreenState();
@@ -37,14 +37,87 @@ class PaymentSelectionScreen extends StatefulWidget {
 
 class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
   String? selectedPaymentMethod;
-  double walletBalance = 0.00; 
+  Future<Map<String, dynamic>>? walletFuture;
   bool isProcessing = false;
 
   static const String cash = 'Cash';
   static const String visaCard = 'Visa Card';
   static const String wallet = 'Wallet';
 
-  void processPayment() async {
+  @override
+  void initState() {
+    super.initState();
+    walletFuture = loadWallet();
+  }
+
+  Future<Map<String, dynamic>> loadWallet() async {
+    final prefs = await SharedPreferences.getInstance();
+    final customerId = prefs.getInt('user_id') ?? 0;
+
+    if (customerId == 0) {
+      return {'balance': 0.0, 'points': 0};
+    }
+
+    final response = await http.post(
+      Uri.parse(ApiConfig.getWalletUrl),
+      body: {'customer_id': customerId.toString()},
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'success') {
+        return {
+          'balance': (data['balance'] as num).toDouble(),
+          'points': data['points'] as int,
+        };
+      }
+    }
+    return {'balance': 0.0, 'points': 0};
+  }
+
+  Future<int> createBooking() async {
+    final prefs = await SharedPreferences.getInstance();
+    final customerId = prefs.getInt('user_id') ?? 0;
+
+    if (customerId == 0) {
+      throw Exception('User ID not found');
+    }
+
+    String paymentMethodApi = 'CASH';
+    if (selectedPaymentMethod == visaCard) {
+      paymentMethodApi = 'VISA';
+    } else if (selectedPaymentMethod == wallet) {
+      paymentMethodApi = 'WALLET';
+    }
+
+    final response = await http.post(
+      Uri.parse(ApiConfig.createBookingUrl),
+      body: {
+        'customer_id': customerId.toString(),
+        'car_id': widget.vehicle.carId.toString(),
+        'service_name': widget.serviceName,
+        'price': widget.bookingAmount.toString(),
+        'booking_date': widget.scheduledDate.toString().split(' ')[0],
+        'booking_time': widget.scheduledTime,
+        'latitude': widget.latitude.toString(),
+        'longitude': widget.longitude.toString(),
+        'payment_method': paymentMethodApi,
+        'address_text': widget.addressText.isEmpty ? '' : widget.addressText,
+        'notes': widget.notes.isEmpty ? '' : widget.notes,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'success' && data['booking_id'] != null) {
+        return data['booking_id'] as int;
+      }
+      throw Exception(data['message'] ?? 'Failed to create booking');
+    }
+    throw Exception('HTTP ${response.statusCode}');
+  }
+
+  Future<void> processPayment() async {
     if (selectedPaymentMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -55,203 +128,162 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
       return;
     }
 
-    if (selectedPaymentMethod == wallet && walletBalance < widget.bookingAmount) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Insufficient wallet balance'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     setState(() {
       isProcessing = true;
     });
 
-    final jobId = 'JOB-${DateTime.now().millisecondsSinceEpoch}';
+    try {
+      final walletData = await walletFuture;
+      final walletBalance = walletData?['balance'] ?? 0.0;
 
-    final booking = Booking(
-      id: jobId,
-      vehiclePlate: widget.vehicle.plate,
-      serviceName: widget.serviceName,
-      price: widget.bookingAmount,
-      scheduledDate: widget.scheduledDate,
-      scheduledTime: widget.scheduledTime,
-      latitude: widget.latitude,
-      longitude: widget.longitude,
-      notes: widget.notes.isEmpty ? null : widget.notes,
-      paymentMethod: selectedPaymentMethod!,
-      status: BookingStatus.confirmed,
-    );
+      if (selectedPaymentMethod == wallet && walletBalance < widget.bookingAmount) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Insufficient wallet balance'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          isProcessing = false;
+        });
+        return;
+      }
 
-    final success = await sendBookingToServer(booking);
+      final bookingId = await createBooking();
 
-    if (!success) {
       if (!mounted) return;
-      setState(() {
-        isProcessing = false;
-      });
+
+      String paymentMethodText;
+      if (selectedPaymentMethod == cash) {
+        paymentMethodText = 'Cash payment';
+      } else if (selectedPaymentMethod == visaCard) {
+        paymentMethodText = 'Visa Card payment';
+      } else {
+        paymentMethodText = 'Wallet payment';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to save booking on server'),
+        SnackBar(
+          content: Text('Payment successful! Booking #$bookingId created'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const CustomerHomeScreen(initialTab: 2)),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not create booking: $e'),
           backgroundColor: Colors.red,
         ),
       );
-      return;
-    }
-
-    if (selectedPaymentMethod == wallet) {
-      walletBalance -= widget.bookingAmount;
-    }
-
-    if (!mounted) return;
-    setState(() {
-      isProcessing = false;
-    });
-
-    String paymentMethodText = '';
-    switch (selectedPaymentMethod) {
-      case cash:
-        paymentMethodText = 'Cash payment';
-        break;
-      case visaCard:
-        paymentMethodText = 'Visa Card payment';
-        break;
-      case wallet:
-        paymentMethodText = 'Wallet payment';
-        break;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$paymentMethodText of ${widget.bookingAmount.toStringAsFixed(2)} ₪ successful!'),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    Navigator.popUntil(context, (route) => route.isFirst);
-  }
-
-Future<bool> sendBookingToServer(Booking booking) async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final customerId = prefs.getInt('user_id') ?? 0;
-    
-    final body = {
-      'customer_id': customerId.toString(),
-      'car_id': widget.vehicle.carId.toString(), // Make sure your vehicle object has carId
-      'service_name': booking.serviceName,
-      'price': booking.price.toString(),
-      'booking_date': booking.scheduledDate.toIso8601String(),
-      'booking_time': booking.scheduledTime,
-      'latitude': booking.latitude.toString(),
-      'longitude': booking.longitude.toString(),
-      'notes': booking.notes ?? '',
-      'payment_method': booking.paymentMethod,
-      'address_text': widget.addressText,
-    };
-    
-    print('Sending booking with data: $body');
-    
-    final response = await http.post(
-      Uri.parse('http://localhost/carwash/sendBookingToServer.php'), 
-      body: body,
-    );
-
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['status'] == 'success';
-    }
-  } catch (e) {
-    print('Error sending booking to server: $e');
-  }
-  return false;
-}
-
-  Widget _buildPaymentOption(String method, IconData icon, Color color) {
-    bool isSelected = selectedPaymentMethod == method;
-    bool isWallet = method == wallet;
-    bool canUseWallet = isWallet && walletBalance >= widget.bookingAmount;
-
-    return InkWell(
-      onTap: () {
-        if (isWallet && !canUseWallet) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Insufficient wallet balance'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
+    } finally {
+      if (mounted) {
         setState(() {
-          selectedPaymentMethod = method;
+          isProcessing = false;
         });
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: color.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : [],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isSelected ? color.withOpacity(0.1) : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(10),
+      }
+    }
+  }
+
+  Widget buildPaymentOption(String method, IconData icon, Color color) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: walletFuture,
+      builder: (context, snapshot) {
+        final walletBalance = snapshot.data?['balance'] ?? 0.0;
+        bool isSelected = selectedPaymentMethod == method;
+        bool isWallet = method == wallet;
+        bool canUseWallet = isWallet && walletBalance >= widget.bookingAmount;
+
+        return InkWell(
+          onTap: () {
+            if (isWallet && !canUseWallet) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Insufficient wallet balance'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+            setState(() {
+              selectedPaymentMethod = method;
+            });
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(
+                color: isSelected ? color : Colors.grey.shade300,
+                width: isSelected ? 2 : 1,
               ),
-              child: Icon(icon, color: isSelected ? color : Colors.grey, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    method,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? color : Colors.black87,
-                    ),
-                  ),
-                  if (isWallet) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Balance: ${walletBalance.toStringAsFixed(2)} ₪',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: canUseWallet ? Colors.green : Colors.red,
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: color.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                  ],
-                ],
-              ),
+                    ]
+                  : [],
             ),
-            if (isSelected) Icon(Icons.check_circle, color: color, size: 24),
-          ],
-        ),
-      ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? color.withOpacity(0.1) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: isSelected ? color : Colors.grey, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        method,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? color : Colors.black87,
+                        ),
+                      ),
+                      if (isWallet) ...[
+                        const SizedBox(height: 4),
+                        snapshot.connectionState == ConnectionState.waiting
+                            ? const SizedBox(
+                                height: 12,
+                                width: 12,
+                                child: CircularProgressIndicator(strokeWidth: 1.5),
+                              )
+                            : Text(
+                                'Balance: ${walletBalance.toStringAsFixed(2)} ₪',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: canUseWallet ? Colors.green : Colors.red,
+                                ),
+                              ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  Icon(Icons.check_circle, color: color, size: 24),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -280,7 +312,6 @@ Future<bool> sendBookingToServer(Booking booking) async {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Booking Summary
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -345,9 +376,7 @@ Future<bool> sendBookingToServer(Booking booking) async {
                 ],
               ),
             ),
-
             const SizedBox(height: 24),
-
             const Text(
               'Choose Payment Method',
               style: TextStyle(
@@ -356,17 +385,11 @@ Future<bool> sendBookingToServer(Booking booking) async {
                 color: Colors.black87,
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // Payment Options
-            _buildPaymentOption(cash, Icons.money, Colors.green),
-            _buildPaymentOption(visaCard, Icons.credit_card, Colors.blue),
-            _buildPaymentOption(wallet, Icons.account_balance_wallet, Colors.purple),
-
+            buildPaymentOption(cash, Icons.money, Colors.green),
+            buildPaymentOption(visaCard, Icons.credit_card, Colors.blue),
+            buildPaymentOption(wallet, Icons.account_balance_wallet, Colors.purple),
             const SizedBox(height: 30),
-
-            // Pay Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

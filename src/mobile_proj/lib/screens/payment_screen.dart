@@ -15,7 +15,7 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  double walletBalance = 200;
+  double walletBalance = 0.00;
   bool isProcessing = false;
 
   bool canPay() {
