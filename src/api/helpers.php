@@ -64,6 +64,22 @@ function require_get()
 }
 
 /**
+ * Protect setup-only endpoints such as manager creation/password reset.
+ */
+function require_setup_key(): void
+{
+    $expected = getenv("CARWASH_SETUP_KEY") ?: "";
+    if ($expected === "") {
+        error("Setup endpoint is disabled. Configure CARWASH_SETUP_KEY on the server.", 503);
+    }
+
+    $provided = $_SERVER["HTTP_X_SETUP_KEY"] ?? $_POST["setup_key"] ?? "";
+    if (!hash_equals($expected, (string)$provided)) {
+        error("Forbidden", 403);
+    }
+}
+
+/**
  * Sanitize string
  */
 function clean($value)
@@ -89,4 +105,61 @@ function respond($data, $statusCode = 200)
     header("Content-Type: application/json; charset=UTF-8");
     echo json_encode($data);
     exit;
+}
+
+function is_success_response($data)
+{
+    return ($data["ok"] ?? false) === true ||
+        strtolower((string)($data["status"] ?? "")) === "success";
+}
+
+function is_password_hash_value(string $value): bool
+{
+    return password_get_info($value)["algo"] !== 0;
+}
+
+function hash_user_password(string $password): string
+{
+    return password_hash($password, PASSWORD_DEFAULT);
+}
+
+function is_strong_password(string $password): bool
+{
+    return strlen($password) >= 8 &&
+        preg_match('/[A-Za-z]/', $password) === 1 &&
+        preg_match('/\d/', $password) === 1;
+}
+
+function validate_password_or_error(string $password): void
+{
+    if (!is_strong_password($password)) {
+        error("Password must be at least 8 characters and include letters and numbers", 400);
+    }
+}
+
+function verify_user_password(string $password, string $storedPassword): bool
+{
+    if (is_password_hash_value($storedPassword)) {
+        return password_verify($password, $storedPassword);
+    }
+
+    return hash_equals($storedPassword, $password);
+}
+
+function migrate_legacy_password_if_needed(mysqli $conn, int $userId, string $password, string $storedPassword): void
+{
+    if (!verify_user_password($password, $storedPassword)) {
+        return;
+    }
+
+    if (is_password_hash_value($storedPassword) &&
+        !password_needs_rehash($storedPassword, PASSWORD_DEFAULT)) {
+        return;
+    }
+
+    $hashed = hash_user_password($password);
+    $stmt = $conn->prepare("UPDATE users SET password_hash = ? WHERE user_id = ?");
+    $stmt->bind_param("si", $hashed, $userId);
+    $stmt->execute();
+    $stmt->close();
 }

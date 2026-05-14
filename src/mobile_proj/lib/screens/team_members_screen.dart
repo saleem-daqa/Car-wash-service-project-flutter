@@ -36,7 +36,11 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
   }
 
   Future<List<dynamic>> fetchMembers() async {
-    final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/team_members_list.php?team_id=${widget.team['team_id']}'));
+    final response = await http.get(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/team_members_list.php?team_id=${widget.team['team_id']}',
+      ),
+    );
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return data['members'] ?? [];
@@ -49,12 +53,18 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final allEmployees = data['employees'] ?? [];
-      
-      final membersResponse = await http.get(Uri.parse('${ApiConfig.baseUrl}/team_members_list.php'));
+
+      final membersResponse = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/team_members_list.php'),
+      );
       if (membersResponse.statusCode == 200) {
         final membersData = json.decode(membersResponse.body);
-        final assignedIds = (membersData['members'] ?? []).map((m) => m['employee_id']).toSet();
-        return allEmployees.where((e) => !assignedIds.contains(e['user_id'])).toList();
+        final assignedIds = (membersData['members'] ?? [])
+            .map((m) => m['employee_id'])
+            .toSet();
+        return allEmployees
+            .where((e) => !assignedIds.contains(e['user_id']))
+            .toList();
       }
       return allEmployees;
     }
@@ -66,7 +76,9 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Employee'),
-        content: const Text('Are you sure you want to remove this employee from the team?'),
+        content: const Text(
+          'Are you sure you want to remove this employee from the team?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -80,6 +92,7 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
       ),
     );
 
+    if (!mounted) return;
     if (confirmed != true) return;
 
     try {
@@ -89,22 +102,30 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
         body: json.encode({'employee_id': employeeId}),
       );
 
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['ok'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Employee removed from team'), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text('Employee removed from team'),
+              backgroundColor: Colors.green,
+            ),
           );
           loadMembers();
           loadAvailableEmployees();
           widget.onUpdated();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['error'] ?? 'Failed to remove'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(data['error'] ?? 'Failed to remove'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
@@ -122,22 +143,30 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
         }),
       );
 
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['ok'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Employee added to team'), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text('Employee added to team'),
+              backgroundColor: Colors.green,
+            ),
           );
           loadMembers();
           loadAvailableEmployees();
           widget.onUpdated();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['error'] ?? 'Failed to add'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(data['error'] ?? 'Failed to add'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
@@ -147,9 +176,7 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Team: ${widget.team['name'] ?? ''}'),
-      ),
+      appBar: AppBar(title: Text('Team: ${widget.team['name'] ?? ''}')),
       body: Column(
         children: [
           Card(
@@ -161,14 +188,19 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
                 children: [
                   Text(
                     'Team Members',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   FutureBuilder<List<dynamic>>(
                     future: membersFuture,
                     builder: (context, snapshot) {
                       final count = snapshot.data?.length ?? 0;
-                      return Text('$count member${count != 1 ? 's' : ''} in this team');
+                      return Text(
+                        '$count member${count != 1 ? 's' : ''} in this team',
+                      );
                     },
                   ),
                 ],
@@ -195,7 +227,11 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                          const Icon(
+                            Icons.people_outline,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(height: 16),
                           const Text('No members in this team'),
                           const SizedBox(height: 16),
@@ -207,7 +243,8 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
                                 return const Text('No available employees');
                               }
                               return ElevatedButton.icon(
-                                onPressed: () => _showAddEmployeeDialog(available),
+                                onPressed: () =>
+                                    _showAddEmployeeDialog(available),
                                 icon: const Icon(Icons.person_add),
                                 label: const Text('Add Employee'),
                               );
@@ -230,7 +267,8 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
                               return const SizedBox.shrink();
                             }
                             return ElevatedButton.icon(
-                              onPressed: () => _showAddEmployeeDialog(available),
+                              onPressed: () =>
+                                  _showAddEmployeeDialog(available),
                               icon: const Icon(Icons.person_add),
                               label: const Text('Add Employee to Team'),
                               style: ElevatedButton.styleFrom(
@@ -247,21 +285,33 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
                           itemBuilder: (context, index) {
                             final member = members[index];
                             return Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               child: ListTile(
-                                leading: const Icon(Icons.person, color: AppTheme.primaryBlue),
+                                leading: const Icon(
+                                  Icons.person,
+                                  color: AppTheme.primaryBlue,
+                                ),
                                 title: Text(member['full_name'] ?? 'Unknown'),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text('Email: ${member['email'] ?? ''}'),
                                     Text('Phone: ${member['phone'] ?? ''}'),
-                                    Text('Status: ${member['is_active'] == 1 ? 'Active' : 'Inactive'}'),
+                                    Text(
+                                      'Status: ${member['is_active'] == 1 ? 'Active' : 'Inactive'}',
+                                    ),
                                   ],
                                 ),
                                 trailing: IconButton(
-                                  icon: const Icon(Icons.remove_circle, color: Colors.red),
-                                  onPressed: () => removeMember(member['employee_id']),
+                                  icon: const Icon(
+                                    Icons.remove_circle,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () =>
+                                      removeMember(member['employee_id']),
                                 ),
                               ),
                             );

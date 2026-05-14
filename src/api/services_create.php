@@ -51,7 +51,8 @@ $stmt = $conn->prepare("
     VALUES (?, ?, ?, ?, ?)
 ");
 if (!$stmt) {
-    error("Prepare failed: " . $conn->error, 500);
+    error_log("Create service prepare failed: " . $conn->error);
+    error("Server error occurred", 500);
 }
 
 $priceFloat = floatval($price);
@@ -59,8 +60,9 @@ $durationInt = intval($duration);
 $stmt->bind_param("ssdii", $name, $description, $priceFloat, $durationInt, $is_active);
 
 if (!$stmt->execute()) {
+    error_log("Create service insert failed: " . $conn->error);
     $stmt->close();
-    error("Insert failed: " . $conn->error, 500);
+    error("Failed to create service", 500);
 }
 
 $newId = $stmt->insert_id;

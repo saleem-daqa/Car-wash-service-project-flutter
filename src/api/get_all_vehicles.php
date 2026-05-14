@@ -30,7 +30,7 @@ $stmt = $conn->prepare(
 if (!$stmt) {
     echo json_encode([
         'status' => 'error',
-        'message' => 'Prepare failed: ' . $conn->error
+        'message' => 'Server error occurred'
     ]);
     $conn->close();
     exit;

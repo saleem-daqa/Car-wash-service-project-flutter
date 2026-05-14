@@ -55,7 +55,7 @@ try {
         $insert_service->bind_param("ssd", $service_name, $description, $priceFloat);
         
         if (!$insert_service->execute()) {
-            throw new Exception("Failed to create service: " . $insert_service->error);
+            throw new Exception("Failed to create service");
         }
         
         $service_id = $conn->insert_id;
@@ -94,7 +94,7 @@ try {
     $stmt = $conn->prepare($sql);
     
     if (!$stmt) {
-        throw new Exception("Prepare failed: " . $conn->error);
+        throw new Exception("Booking prepare failed");
     }
 
     $lat = floatval($latitude);
@@ -123,7 +123,7 @@ try {
             "booking_id" => $booking_id
         ]);
     } else {
-        throw new Exception("Execute failed: " . $stmt->error);
+        throw new Exception("Booking insert failed");
     }
 
     $stmt->close();
@@ -134,8 +134,7 @@ try {
     
     echo json_encode([
         "status" => "error",
-        "message" => "Server error occurred",
-        "details" => $e->getMessage()
+        "message" => "Server error occurred"
     ]);
 }
 ?>

@@ -26,5 +26,5 @@ try {
   respond(["ok" => true, "affected" => (int)$stmt->affected_rows]);
 } catch (mysqli_sql_exception $e) {
   // If service is referenced by bookings, delete will fail (FK constraint)
-  respond(["error" => "Cannot delete service (it may be used in bookings)", "details" => $e->getMessage()], 409);
+  respond(["error" => "Cannot delete service (it may be used in bookings)"], 409);
 }

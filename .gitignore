@@ -1,0 +1,26 @@
+.DS_Store
+
+# Dart / Flutter
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+**/build/
+
+# Android / iOS generated files
+*.iml
+*.ipr
+*.iws
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Logs and local runtime output
+*.log
+php_errors.log
+
+# Local environment
+.env
+.env.*

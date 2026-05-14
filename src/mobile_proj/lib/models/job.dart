@@ -1,8 +1,4 @@
-enum JobStatus {
-  assigned,
-  inProgress,
-  completed,
-}
+enum JobStatus { assigned, inProgress, completed }
 
 class Job {
   final String id;
@@ -41,7 +37,8 @@ class Job {
     if (scheduledAt != null && scheduledAt.toString().isNotEmpty) {
       try {
         scheduledDate = DateTime.parse(scheduledAt);
-        scheduledTime = '${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}';
+        scheduledTime =
+            '${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}';
       } catch (e) {
         scheduledDate = DateTime.now();
         scheduledTime = 'N/A';
@@ -73,13 +70,13 @@ class Job {
           : (json['plate_number'] ?? ''),
       latitude: json['latitude'] != null
           ? (json['latitude'] is String
-              ? double.tryParse(json['latitude']) ?? 0.0
-              : (json['latitude'] as num).toDouble())
+                ? double.tryParse(json['latitude']) ?? 0.0
+                : (json['latitude'] as num).toDouble())
           : 0.0,
       longitude: json['longitude'] != null
           ? (json['longitude'] is String
-              ? double.tryParse(json['longitude']) ?? 0.0
-              : (json['longitude'] as num).toDouble())
+                ? double.tryParse(json['longitude']) ?? 0.0
+                : (json['longitude'] as num).toDouble())
           : 0.0,
       addressText: json['address'] ?? json['address_text'] ?? '',
       scheduledDate: scheduledDate,

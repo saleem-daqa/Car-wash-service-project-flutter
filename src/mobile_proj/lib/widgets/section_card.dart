@@ -30,10 +30,10 @@ class SectionCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withOpacity(0.10),
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppTheme.primaryBlue.withOpacity(0.20),
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.20),
                   ),
                 ),
                 alignment: Alignment.center,
@@ -61,13 +61,16 @@ class SectionCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     ...bullets.map(
-                          (b) => Padding(
+                      (b) => Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.circle,
-                                size: 7, color: AppTheme.primaryBlue),
+                            const Icon(
+                              Icons.circle,
+                              size: 7,
+                              color: AppTheme.primaryBlue,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(

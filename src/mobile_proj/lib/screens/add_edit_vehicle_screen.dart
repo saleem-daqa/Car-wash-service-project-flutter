@@ -1,10 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../models/vehicle.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../config/api_config.dart';
+import '../models/vehicle.dart';
+import '../utils/input_validators.dart';
+import '../widgets/app_button.dart';
+import '../widgets/app_feedback.dart';
+import '../widgets/app_shell.dart';
+import '../widgets/app_text_field.dart';
 
 class AddEditVehicleScreen extends StatefulWidget {
   final Vehicle? vehicleToEdit;
@@ -28,7 +35,11 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
   final TextEditingController modelController = TextEditingController();
   final TextEditingController plateController = TextEditingController();
 
-  final List<String> vehicleTypes = ['Car/Sedan', 'Bus/Truck', 'Motorcycle/Scooter'];
+  final List<String> vehicleTypes = const [
+    'Car/Sedan',
+    'Bus/Truck',
+    'Motorcycle/Scooter',
+  ];
   String? selectedType;
   bool _isLoading = false;
 
@@ -52,6 +63,7 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
   }
 
   Future<void> saveVehicle() async {
+    FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
     if (_isLoading) return;
 
@@ -60,11 +72,10 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
 
     if (customerId == 0) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please login first'),
-          backgroundColor: Colors.red,
-        ),
+      showAppSnackBar(
+        context,
+        message: 'Please log in before saving a vehicle.',
+        isError: true,
       );
       return;
     }
@@ -73,12 +84,14 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
 
     try {
       final isEditing = widget.vehicleToEdit != null;
-      final url = isEditing ? ApiConfig.updateVehicleUrl : ApiConfig.createVehicleUrl;
+      final url = isEditing
+          ? ApiConfig.updateVehicleUrl
+          : ApiConfig.createVehicleUrl;
 
       final body = {
         'customer_id': customerId.toString(),
         'plate_number': plateController.text.trim().toUpperCase(),
-        'type': selectedType ?? 'Car/Sedan',
+        'type': selectedType ?? vehicleTypes.first,
         'car_brand': brandController.text.trim(),
         'car_model': modelController.text.trim(),
         'color': '',
@@ -89,25 +102,21 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
         body['car_id'] = widget.vehicleToEdit!.carId.toString();
       }
 
-      final response = await http.post(
-        Uri.parse(url),
-        body: body,
-      );
+      final response = await http.post(Uri.parse(url), body: body);
 
       if (!mounted) return;
 
       final responseBody = response.body.trim();
       if (responseBody.isEmpty || !responseBody.startsWith('{')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Server error, please try again'),
-            backgroundColor: Colors.red,
-          ),
+        showAppSnackBar(
+          context,
+          message: 'Server error. Please try again.',
+          isError: true,
         );
         return;
       }
 
-      final data = json.decode(responseBody);
+      final data = json.decode(responseBody) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && data['status'] == 'success') {
         final vehicle = Vehicle(
@@ -119,42 +128,26 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
         );
 
         if (isEditing) {
-          if (widget.onVehicleUpdated != null) {
-            widget.onVehicleUpdated!(vehicle);
-          }
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Vehicle updated successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          widget.onVehicleUpdated?.call(vehicle);
+          showAppSnackBar(context, message: 'Vehicle updated successfully.');
         } else {
-          if (widget.onVehicleAdded != null) {
-            widget.onVehicleAdded!(vehicle);
-          }
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Vehicle added successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          widget.onVehicleAdded?.call(vehicle);
+          showAppSnackBar(context, message: 'Vehicle added successfully.');
         }
         Navigator.pop(context);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Could not save vehicle'),
-            backgroundColor: Colors.red,
-          ),
+        showAppSnackBar(
+          context,
+          message: data['message']?.toString() ?? 'Could not save vehicle.',
+          isError: true,
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+      showAppSnackBar(
+        context,
+        message: 'Could not save vehicle. Please try again.',
+        isError: true,
       );
     } finally {
       if (mounted) {
@@ -163,270 +156,121 @@ class _AddEditVehicleScreenState extends State<AddEditVehicleScreen> {
     }
   }
 
-  Widget buildInputField({
-    required String label,
-    required TextEditingController controller,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-    List<TextInputFormatter>? inputFormatters,
-    TextCapitalization textCapitalization = TextCapitalization.none,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w400,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  spreadRadius: 2,
-                  blurRadius: 7,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: TextFormField(
-              controller: controller,
-              keyboardType: keyboardType,
-              validator: validator,
-              inputFormatters: inputFormatters,
-              textCapitalization: textCapitalization,
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 15,
-                  horizontal: 15,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: const BorderSide(color: Colors.red),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: const BorderSide(color: Colors.red),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.vehicleToEdit != null;
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        elevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-        backgroundColor: Colors.white,
         leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
         ),
-        title: Text(
-          isEditing ? 'Edit Vehicle' : 'Add Vehicle',
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
+        title: Text(isEditing ? 'Edit vehicle' : 'Add vehicle'),
       ),
-      body: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-          width: double.infinity,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                Text(
-                  isEditing ? 'Edit your vehicle' : 'Add a new vehicle',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.grey[700],
-                  ),
+      body: AppShell(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                isEditing ? 'Update vehicle details' : 'Add a vehicle',
+                style: textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isEditing
+                    ? 'Keep your car information accurate for service teams.'
+                    : 'Add the vehicle you want to book services for.',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(height: 30),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 15),
+              ),
+              const SizedBox(height: 20),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Vehicle Type *',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.black87,
+                      Text(
+                        'Vehicle type',
+                        style: textTheme.labelLarge?.copyWith(
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.3),
-                              spreadRadius: 2,
-                              blurRadius: 7,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedType,
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.category_outlined),
+                          hintText: 'Choose vehicle type',
                         ),
-                        child: DropdownButtonFormField<String>(
-                          value: selectedType,
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 15,
-                              horizontal: 15,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: BorderSide.none,
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: const BorderSide(color: Colors.red),
-                            ),
-                            focusedErrorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              borderSide: const BorderSide(color: Colors.red),
-                            ),
+                        items: vehicleTypes.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
+                        onChanged: _isLoading
+                            ? null
+                            : (value) => setState(() => selectedType = value),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select a vehicle type';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        label: 'Brand',
+                        hintText: 'Toyota',
+                        controller: brandController,
+                        textCapitalization: TextCapitalization.words,
+                        prefixIcon: Icons.directions_car_outlined,
+                        validator: InputValidators.vehicleBrand,
+                      ),
+                      AppTextField(
+                        label: 'Model',
+                        hintText: 'Corolla',
+                        controller: modelController,
+                        textCapitalization: TextCapitalization.words,
+                        prefixIcon: Icons.local_car_wash_outlined,
+                        validator: InputValidators.vehicleModel,
+                      ),
+                      AppTextField(
+                        label: 'Plate number',
+                        hintText: '123-456',
+                        controller: plateController,
+                        textCapitalization: TextCapitalization.characters,
+                        prefixIcon: Icons.confirmation_number_outlined,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[A-Za-z0-9\-\s]'),
                           ),
-                          items: vehicleTypes.map((type) {
-                            return DropdownMenuItem(
-                              value: type,
-                              child: Text(type),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedType = value;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select a vehicle type';
-                            }
-                            return null;
-                          },
-                        ),
+                          LengthLimitingTextInputFormatter(15),
+                        ],
+                        validator: InputValidators.vehiclePlate,
+                      ),
+                      const SizedBox(height: 8),
+                      AppButton(
+                        label: isEditing ? 'Update vehicle' : 'Add vehicle',
+                        icon: isEditing ? Icons.save_outlined : Icons.add,
+                        isLoading: _isLoading,
+                        onPressed: saveVehicle,
                       ),
                     ],
                   ),
                 ),
-                buildInputField(
-                  label: 'Brand *',
-                  controller: brandController,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter the vehicle brand';
-                    }
-                    if (!Vehicle.isValidBrand(value.trim())) {
-                      return 'Brand must be between 2 and 50 characters';
-                    }
-                    return null;
-                  },
-                ),
-                buildInputField(
-                  label: 'Model * (Numbers only)',
-                  controller: modelController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter the vehicle model';
-                    }
-                    if (!Vehicle.isValidModel(value.trim())) {
-                      return 'Model must contain only numbers';
-                    }
-                    return null;
-                  },
-                ),
-                buildInputField(
-                  label: 'Plate Number *',
-                  controller: plateController,
-                  textCapitalization: TextCapitalization.characters,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter the plate number';
-                    }
-                    if (!Vehicle.isValidPlate(value.trim())) {
-                      return 'Plate number must be between 3 and 15 characters';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : saveVehicle,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 60),
-                    backgroundColor: const Color(0xff0095FF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    elevation: 8,
-                    shadowColor: Colors.blueAccent.withOpacity(0.5),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : Text(
-                          isEditing ? 'Update Vehicle' : 'Add Vehicle',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 18,
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

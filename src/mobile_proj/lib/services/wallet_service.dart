@@ -65,5 +65,4 @@ class WalletService {
       return false;
     }
   }
-
 }

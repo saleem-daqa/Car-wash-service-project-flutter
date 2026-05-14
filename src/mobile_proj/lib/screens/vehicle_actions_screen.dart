@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/vehicle.dart';
-import '../models/wash_service.dart';
 import 'wash_service_screen.dart';
 import 'add_edit_vehicle_screen.dart';
 import 'package:http/http.dart' as http;
@@ -24,7 +23,9 @@ class VehicleActionsScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Vehicle'),
-        content: Text('Are you sure you want to delete ${vehicle.brand} ${vehicle.model}?'),
+        content: Text(
+          'Are you sure you want to delete ${vehicle.brand} ${vehicle.model}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -33,7 +34,7 @@ class VehicleActionsScreen extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              
+
               if (vehicle.carId == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -50,17 +51,21 @@ class VehicleActionsScreen extends StatelessWidget {
                   body: {'car_id': vehicle.carId.toString()},
                 );
 
+                if (!context.mounted) return;
                 if (response.statusCode == 200) {
                   final data = json.decode(response.body);
-                  
+
                   if (data['status'] == 'success') {
                     onVehicleDeleted();
                     Navigator.pop(context);
-                    
+
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(data['message'] ?? '${vehicle.brand} ${vehicle.model} deleted successfully'),
+                          content: Text(
+                            data['message'] ??
+                                '${vehicle.brand} ${vehicle.model} deleted successfully',
+                          ),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -69,7 +74,9 @@ class VehicleActionsScreen extends StatelessWidget {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(data['message'] ?? 'Failed to delete vehicle'),
+                          content: Text(
+                            data['message'] ?? 'Failed to delete vehicle',
+                          ),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -96,10 +103,7 @@ class VehicleActionsScreen extends StatelessWidget {
                 }
               }
             },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -118,7 +122,8 @@ class VehicleActionsScreen extends StatelessWidget {
         ),
       ),
     );
-    
+
+    if (!context.mounted) return;
     if (updatedVehicle != null && updatedVehicle is Vehicle) {
       onVehicleEdited(updatedVehicle);
       Navigator.pop(context); // Go back to booking screen
@@ -129,9 +134,7 @@ class VehicleActionsScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => WashServiceScreen(
-          vehicle: vehicle,
-        ),
+        builder: (context) => WashServiceScreen(vehicle: vehicle),
       ),
     );
   }
@@ -187,7 +190,7 @@ class VehicleActionsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -199,14 +202,10 @@ class VehicleActionsScreen extends StatelessWidget {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: color.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      icon,
-                      color: color,
-                      size: 40,
-                    ),
+                    child: Icon(icon, color: color, size: 40),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -228,9 +227,12 @@ class VehicleActionsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -303,7 +305,7 @@ class VehicleActionsScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -315,7 +317,7 @@ class VehicleActionsScreen extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -336,18 +338,12 @@ class VehicleActionsScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.chevron_right, color: Colors.grey[400]),
           ],
         ),
       ),

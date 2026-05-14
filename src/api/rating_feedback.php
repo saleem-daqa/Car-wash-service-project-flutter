@@ -82,7 +82,7 @@ $stmt = $conn->prepare("
 
 if (!$stmt) {
     http_response_code(500);
-    echo json_encode(["status" => "error", "message" => "Prepare failed: " . $conn->error]);
+    echo json_encode(["status" => "error", "message" => "Server error occurred"]);
     $conn->close();
     exit;
 }
@@ -93,7 +93,7 @@ if ($stmt->execute()) {
     echo json_encode(["status" => "success", "message" => "Feedback saved"]);
 } else {
     http_response_code(500);
-    echo json_encode(["status" => "error", "message" => "Failed to save feedback: " . $stmt->error]);
+    echo json_encode(["status" => "error", "message" => "Failed to save feedback"]);
 }
 
 $stmt->close();

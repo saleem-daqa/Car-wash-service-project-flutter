@@ -58,7 +58,19 @@ The folder should contain all PHP files:
    ```sql
    mysql -u root -p < MobilePRJ.sql
    ```
-3. Update `config.php` with your database credentials if needed
+3. Set database credentials with environment variables if your local setup is not covered by the defaults:
+   ```bash
+   export CARWASH_DB_NAME=car_wash_db
+   export CARWASH_DB_HOSTS=127.0.0.1,localhost
+   export CARWASH_DB_PORTS=8889,3306
+   export CARWASH_DB_USERS=apiuser,root
+   export CARWASH_DB_PASSWORDS=,root
+   ```
+4. Set a setup key before using setup-only manager endpoints:
+   ```bash
+   export CARWASH_SETUP_KEY="choose-a-long-random-secret"
+   ```
+   Calls to `create_manager.php` and `update_manager_password.php` must include `X-Setup-Key: <your key>` or a `setup_key` form field.
 
 ### 4. Test the API
 
@@ -113,7 +125,7 @@ The app is currently configured for **MAMP** (port 8888). If you're using **XAMP
 
 3. **Check database connection**
    - Make sure MySQL is running
-   - Verify credentials in `config.php`
+   - Verify `CARWASH_DB_*` environment variables or the local defaults in `db.php`
 
 4. **For Physical Device**
    - Find your computer's IP: `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
@@ -127,7 +139,7 @@ Use Postman or browser to test:
 POST http://localhost/api/register.php
 Content-Type: application/x-www-form-urlencoded
 
-Body: full_name=Test&email=test@test.com&phone=1234567890&password=123456
+Body: full_name=Test&email=test@test.com&phone=1234567890&password=manager123
 ```
 
 Or test in browser:
@@ -148,4 +160,4 @@ Or test in browser:
 - **Base URL (MAMP)**: `http://10.0.2.2:8888/api`
 - **Base URL (XAMPP)**: `http://10.0.2.2/api` (needs to be changed in code)
 - **Database**: `car_wash_db`
-- **All APIs**: Using centralized `db.php` with auto-detection (tries common XAMPP/MAMP configs)
+- **All APIs**: Using centralized `db.php` with environment-variable overrides and common local XAMPP/MAMP defaults

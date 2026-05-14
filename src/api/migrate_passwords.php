@@ -1,5 +1,6 @@
 <?php
-require_once 'db.php';
+require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/db.php';
 
 echo "Starting password migration...\n";
 
@@ -14,8 +15,8 @@ while ($row = $result->fetch_assoc()) {
     $user_id = $row['user_id'];
     $stored_password = $row['password_hash'];
     
-    if (password_needs_rehash($stored_password, PASSWORD_DEFAULT)) {
-        $hashed = password_hash($stored_password, PASSWORD_DEFAULT);
+    if (!is_password_hash_value($stored_password)) {
+        $hashed = hash_user_password($stored_password);
         
         $update_stmt = $conn->prepare("UPDATE users SET password_hash = ? WHERE user_id = ?");
         $update_stmt->bind_param("si", $hashed, $user_id);

@@ -8,10 +8,10 @@ class RatingFeedbackScreen extends StatefulWidget {
   final String serviceName;
 
   const RatingFeedbackScreen({
-    Key? key,
+    super.key,
     required this.bookingId,
     required this.serviceName,
-  }) : super(key: key);
+  });
 
   @override
   State<RatingFeedbackScreen> createState() => _RatingFeedbackScreenState();
@@ -32,7 +32,9 @@ class _RatingFeedbackScreenState extends State<RatingFeedbackScreen> {
   Future<void> _loadExistingRating() async {
     try {
       final response = await http.get(
-        Uri.parse('${ApiConfig.ratingFeedbackUrl}?booking_id=${widget.bookingId}'),
+        Uri.parse(
+          '${ApiConfig.ratingFeedbackUrl}?booking_id=${widget.bookingId}',
+        ),
       );
 
       if (mounted && response.statusCode == 200) {
@@ -185,185 +187,196 @@ class _RatingFeedbackScreenState extends State<RatingFeedbackScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-            const SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Service Details',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.local_car_wash,
+                              color: Color(0xff0095FF),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                widget.serviceName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.confirmation_number,
+                              color: Colors.grey[600],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Booking #${widget.bookingId}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                  const SizedBox(height: 30),
                   const Text(
-                    'Service Details',
+                    'Rate Your Experience',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Icon(Icons.local_car_wash, color: Color(0xff0095FF), size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          widget.serviceName,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildStarWidget(1),
+                        _buildStarWidget(2),
+                        _buildStarWidget(3),
+                        _buildStarWidget(4),
+                        _buildStarWidget(5),
+                      ],
+                    ),
+                  ),
+                  if (rating > 0) ...[
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Text(
+                        getRatingText(),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.confirmation_number, color: Colors.grey[600], size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Booking #${widget.bookingId}',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            const Text(
-              'Rate Your Experience',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildStarWidget(1),
-                  _buildStarWidget(2),
-                  _buildStarWidget(3),
-                  _buildStarWidget(4),
-                  _buildStarWidget(5),
-                ],
-              ),
-            ),
-            if (rating > 0) ...[
-              const SizedBox(height: 12),
-              Center(
-                child: Text(
-                  getRatingText(),
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 30),
-            const Text(
-              'Your Feedback',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                    ),
+                  ],
+                  const SizedBox(height: 30),
                   const Text(
-                    'Tell us about your experience (Optional)',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    'Your Feedback',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: feedbackController,
-                    maxLines: 6,
-                    decoration: InputDecoration(
-                      hintText: 'Write your feedback here...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Tell us about your experience (Optional)',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: feedbackController,
+                          maxLines: 6,
+                          decoration: InputDecoration(
+                            hintText: 'Write your feedback here...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF5F7FA),
+                            contentPadding: const EdgeInsets.all(15),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _buildSubmitButtonHandler(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xff0095FF),
+                        disabledBackgroundColor: Colors.grey,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        elevation: 0,
                       ),
-                      filled: true,
-                      fillColor: const Color(0xFFF5F7FA),
-                      contentPadding: const EdgeInsets.all(15),
+                      child: _buildSubmitButtonChild(),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _buildSubmitButtonHandler(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xff0095FF),
-                  disabledBackgroundColor: Colors.grey,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  elevation: 0,
-                ),
-                child: _buildSubmitButtonChild(),
-              ),
-            ),
-                ],
-              ),
-            ),
-          );
+    );
   }
 
   Widget _buildStarWidget(int starNumber) {
     IconData starIcon = Icons.star_border;
     Color starColor = Colors.grey[300]!;
-    
+
     if (rating >= starNumber) {
       starIcon = Icons.star;
       starColor = Colors.amber;
@@ -375,11 +388,7 @@ class _RatingFeedbackScreenState extends State<RatingFeedbackScreen> {
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Icon(
-          starIcon,
-          size: 48,
-          color: starColor,
-        ),
+        child: Icon(starIcon, size: 48, color: starColor),
       ),
     );
   }

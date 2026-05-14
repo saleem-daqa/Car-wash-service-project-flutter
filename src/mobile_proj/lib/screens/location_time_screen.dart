@@ -59,9 +59,7 @@ class _LocationTimeScreenState extends State<LocationTimeScreen> {
       }
 
       Position position = await Geolocator.getCurrentPosition(
-        locationSettings: LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
+        locationSettings: LocationSettings(accuracy: LocationAccuracy.high),
       );
 
       if (!mounted) return;
@@ -79,7 +77,9 @@ class _LocationTimeScreenState extends State<LocationTimeScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('GPS location failed. You can enter address manually below.'),
+          content: Text(
+            'GPS location failed. You can enter address manually below.',
+          ),
           backgroundColor: Colors.orange,
           duration: const Duration(seconds: 4),
         ),
@@ -177,12 +177,12 @@ class _LocationTimeScreenState extends State<LocationTimeScreen> {
       setState(() {
         locationTouched = true;
       });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please set your location'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please set your location'),
+          backgroundColor: Colors.red,
+        ),
+      );
       isValid = false;
     }
     if (selectedDate == null) {
@@ -218,7 +218,12 @@ class _LocationTimeScreenState extends State<LocationTimeScreen> {
     return isValid;
   }
 
-  Widget buildSummaryRow(IconData icon, String label, String value, bool isPrice) {
+  Widget buildSummaryRow(
+    IconData icon,
+    String label,
+    String value,
+    bool isPrice,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -337,7 +342,8 @@ class _LocationTimeScreenState extends State<LocationTimeScreen> {
                       buildSummaryRow(
                         Icons.location_on,
                         'Location',
-                        useManualAddress && addressController.text.trim().isNotEmpty
+                        useManualAddress &&
+                                addressController.text.trim().isNotEmpty
                             ? addressController.text.trim()
                             : 'Lat: ${latitude!.toStringAsFixed(5)}, Lng: ${longitude!.toStringAsFixed(5)}',
                         false,
@@ -429,364 +435,439 @@ class _LocationTimeScreenState extends State<LocationTimeScreen> {
       appBar: AppBar(
         title: const Text(
           'Location & Time',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
       ),
-      body: Container(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: locationTouched && latitude == null && !useManualAddress
-                      ? const BorderSide(color: Colors.red, width: 2)
-                      : BorderSide.none,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text('Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          const Text(' *', style: TextStyle(color: Colors.red, fontSize: 16)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        locationStatus,
-                        style: TextStyle(
-                          color: locationTouched && latitude == null && !useManualAddress ? Colors.red : Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: loadingLocation ? null : getLocation,
-                          icon: loadingLocation
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.my_location, color: Colors.white),
-                          label: Text(
-                            loadingLocation ? 'Getting Location...' : 'Use Current Location',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xff0095FF),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          ),
-                        ),
-                      ),
-                      if (latitude != null && longitude != null && !useManualAddress)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.green[50],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.green[200]!),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.check_circle, color: Colors.green[700], size: 16),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    'Lat: ${latitude!.toStringAsFixed(5)}, Lng: ${longitude!.toStringAsFixed(5)}',
-                                    style: TextStyle(fontSize: 12, color: Colors.green[900]),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: Colors.grey[300])),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text('OR', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                          ),
-                          Expanded(child: Divider(color: Colors.grey[300])),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: addressController,
-                        decoration: InputDecoration(
-                          labelText: 'Enter Address Manually',
-                          hintText: 'e.g., 123 Main Street, City',
-                          prefixIcon: const Icon(Icons.location_on),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.blue[700]!),
-                          ),
-                        ),
-                        onChanged: (value) {
-                          if (value.trim().isNotEmpty) {
-                            setState(() {
-                              useManualAddress = true;
-                              locationTouched = true;
-                            });
-                          } else {
-                            setState(() {
-                              useManualAddress = false;
-                            });
-                          }
-                        },
-                      ),
-                      if (useManualAddress && addressController.text.trim().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.blue[200]!),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.check_circle, color: Colors.blue[700], size: 16),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    addressController.text.trim(),
-                                    style: TextStyle(fontSize: 12, color: Colors.blue[900]),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: locationTouched && latitude == null && !useManualAddress
+                    ? const BorderSide(color: Colors.red, width: 2)
+                    : BorderSide.none,
               ),
-              const SizedBox(height: 16),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: dateTouched && selectedDate == null
-                      ? const BorderSide(color: Colors.red, width: 2)
-                      : BorderSide.none,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          const Text(' *', style: TextStyle(color: Colors.red, fontSize: 16)),
-                        ],
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Location',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const Text(
+                          ' *',
+                          style: TextStyle(color: Colors.red, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      locationStatus,
+                      style: TextStyle(
+                        color:
+                            locationTouched &&
+                                latitude == null &&
+                                !useManualAddress
+                            ? Colors.red
+                            : Colors.black87,
                       ),
-                      const SizedBox(height: 8),
-                      InkWell(
-                        onTap: pickDate,
-                        borderRadius: BorderRadius.circular(12),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: loadingLocation ? null : getLocation,
+                        icon: loadingLocation
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.my_location,
+                                color: Colors.white,
+                              ),
+                        label: Text(
+                          loadingLocation
+                              ? 'Getting Location...'
+                              : 'Use Current Location',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xff0095FF),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (latitude != null &&
+                        longitude != null &&
+                        !useManualAddress)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
                         child: Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: dateTouched && selectedDate == null
-                                  ? Colors.red
-                                  : Colors.grey[300]!,
-                            ),
+                            color: Colors.green[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.green[200]!),
                           ),
                           child: Row(
                             children: [
                               Icon(
-                                Icons.calendar_today,
-                                color: dateTouched && selectedDate == null
-                                    ? Colors.red
-                                    : Colors.blue[700],
+                                Icons.check_circle,
+                                color: Colors.green[700],
+                                size: 16,
                               ),
-                              const SizedBox(width: 10),
-                              Text(
-                                selectedDate == null ? 'Select a date' : formatDate(selectedDate!),
-                                style: TextStyle(
-                                  color: dateTouched && selectedDate == null
-                                      ? Colors.red
-                                      : Colors.black87,
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Lat: ${latitude!.toStringAsFixed(5)}, Lng: ${longitude!.toStringAsFixed(5)}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green[900],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: timeTouched && selectedTime == null
-                      ? const BorderSide(color: Colors.red, width: 2)
-                      : BorderSide.none,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text('Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          const Text(' *', style: TextStyle(color: Colors.red, fontSize: 16)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      InkWell(
-                        onTap: pickTime,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: timeTouched && selectedTime == null
-                                  ? Colors.red
-                                  : Colors.grey[300]!,
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: Colors.grey[300])),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            'OR',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
                             ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: Colors.grey[300])),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: addressController,
+                      decoration: InputDecoration(
+                        labelText: 'Enter Address Manually',
+                        hintText: 'e.g., 123 Main Street, City',
+                        prefixIcon: const Icon(Icons.location_on),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue[700]!),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        if (value.trim().isNotEmpty) {
+                          setState(() {
+                            useManualAddress = true;
+                            locationTouched = true;
+                          });
+                        } else {
+                          setState(() {
+                            useManualAddress = false;
+                          });
+                        }
+                      },
+                    ),
+                    if (useManualAddress &&
+                        addressController.text.trim().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue[200]!),
                           ),
                           child: Row(
                             children: [
                               Icon(
-                                Icons.access_time,
-                                color: timeTouched && selectedTime == null
-                                    ? Colors.red
-                                    : Colors.blue[700],
+                                Icons.check_circle,
+                                color: Colors.blue[700],
+                                size: 16,
                               ),
-                              const SizedBox(width: 10),
-                              Text(
-                                selectedTime ?? 'Select a time',
-                                style: TextStyle(
-                                  color: timeTouched && selectedTime == null
-                                      ? Colors.red
-                                      : Colors.black87,
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  addressController.text.trim(),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue[900],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(12),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: dateTouched && selectedDate == null
+                    ? const BorderSide(color: Colors.red, width: 2)
+                    : BorderSide.none,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Date',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const Text(
+                          ' *',
+                          style: TextStyle(color: Colors.red, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: pickDate,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.blue[50],
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.blue[200]!),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: dateTouched && selectedDate == null
+                                ? Colors.red
+                                : Colors.grey[300]!,
+                          ),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Our working hours are from 6:00 AM to 11:00 PM',
-                                style: TextStyle(fontSize: 13, color: Colors.blue[900]),
+                            Icon(
+                              Icons.calendar_today,
+                              color: dateTouched && selectedDate == null
+                                  ? Colors.red
+                                  : Colors.blue[700],
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              selectedDate == null
+                                  ? 'Select a date'
+                                  : formatDate(selectedDate!),
+                              style: TextStyle(
+                                color: dateTouched && selectedDate == null
+                                    ? Colors.red
+                                    : Colors.black87,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Notes (Optional)',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: notesController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          hintText: 'Any special instructions? (gate code, parking, etc)',
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.all(14),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.blue[700]!),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: timeTouched && selectedTime == null
+                    ? const BorderSide(color: Colors.red, width: 2)
+                    : BorderSide.none,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Time',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
+                        const Text(
+                          ' *',
+                          style: TextStyle(color: Colors.red, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: pickTime,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: timeTouched && selectedTime == null
+                                ? Colors.red
+                                : Colors.grey[300]!,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              color: timeTouched && selectedTime == null
+                                  ? Colors.red
+                                  : Colors.blue[700],
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              selectedTime ?? 'Select a time',
+                              style: TextStyle(
+                                color: timeTouched && selectedTime == null
+                                    ? Colors.red
+                                    : Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.blue[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.blue[700],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Our working hours are from 6:00 AM to 11:00 PM',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.blue[900],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Notes (Optional)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: notesController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText:
+                            'Any special instructions? (gate code, parking, etc)',
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.all(14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue[700]!),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: confirmBooking,
+                icon: const Icon(Icons.check_circle, color: Colors.white),
+                label: const Text(
+                  'Confirm Booking',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[600],
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: confirmBooking,
-                  icon: const Icon(Icons.check_circle, color: Colors.white),
-                  label: const Text('Confirm Booking', style: TextStyle(fontSize: 16, color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[600],
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

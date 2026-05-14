@@ -40,7 +40,9 @@ class _TeamsManagementScreenState extends State<TeamsManagementScreen> {
   }
 
   Future<List<dynamic>> loadCars() async {
-    final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/company_cars_list.php'));
+    final response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}/company_cars_list.php'),
+    );
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return data['cars'] ?? [];
@@ -67,6 +69,7 @@ class _TeamsManagementScreenState extends State<TeamsManagementScreen> {
       ),
     );
 
+    if (!mounted) return;
     if (confirmed != true) return;
 
     try {
@@ -76,22 +79,33 @@ class _TeamsManagementScreenState extends State<TeamsManagementScreen> {
         body: json.encode({'team_id': teamId}),
       );
 
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['ok'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Team deleted successfully'), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text('Team deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
           );
           loadTeams();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['error'] ?? 'Could not delete'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(data['error'] ?? 'Could not delete'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Something went wrong: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Something went wrong: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -100,10 +114,8 @@ class _TeamsManagementScreenState extends State<TeamsManagementScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddEditTeamScreen(
-          team: team,
-          onSaved: () => loadTeams(),
-        ),
+        builder: (_) =>
+            AddEditTeamScreen(team: team, onSaved: () => loadTeams()),
       ),
     );
   }
@@ -112,9 +124,7 @@ class _TeamsManagementScreenState extends State<TeamsManagementScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddEditTeamScreen(
-          onSaved: () => loadTeams(),
-        ),
+        builder: (_) => AddEditTeamScreen(onSaved: () => loadTeams()),
       ),
     );
   }
@@ -123,10 +133,8 @@ class _TeamsManagementScreenState extends State<TeamsManagementScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => TeamMembersScreen(
-          team: team,
-          onUpdated: () => loadTeams(),
-        ),
+        builder: (_) =>
+            TeamMembersScreen(team: team, onUpdated: () => loadTeams()),
       ),
     );
   }
@@ -134,9 +142,7 @@ class _TeamsManagementScreenState extends State<TeamsManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Teams Management'),
-      ),
+      appBar: AppBar(title: const Text('Teams Management')),
       body: RefreshIndicator(
         onRefresh: () async {
           loadTeams();
@@ -174,7 +180,10 @@ class _TeamsManagementScreenState extends State<TeamsManagementScreen> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const CompanyCarsManagementScreen()),
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const CompanyCarsManagementScreen(),
+                            ),
                           );
                         },
                         icon: const Icon(Icons.directions_car),
@@ -196,35 +205,59 @@ class _TeamsManagementScreenState extends State<TeamsManagementScreen> {
                           itemBuilder: (context, index) {
                             final team = teams[index];
                             return Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               child: ListTile(
-                                leading: const Icon(Icons.groups, color: AppTheme.primaryBlue),
+                                leading: const Icon(
+                                  Icons.groups,
+                                  color: AppTheme.primaryBlue,
+                                ),
                                 title: Text(
                                   team['name'] ?? 'Unknown',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Car: ${team['car_plate'] ?? 'N/A'} - ${team['car_model'] ?? 'N/A'}'),
-                                    Text('Members: ${team['member_count'] ?? 0}'),
-                                    Text('Status: ${team['is_active'] == 1 ? 'Active' : 'Inactive'}'),
+                                    Text(
+                                      'Car: ${team['car_plate'] ?? 'N/A'} - ${team['car_model'] ?? 'N/A'}',
+                                    ),
+                                    Text(
+                                      'Members: ${team['member_count'] ?? 0}',
+                                    ),
+                                    Text(
+                                      'Status: ${team['is_active'] == 1 ? 'Active' : 'Inactive'}',
+                                    ),
                                   ],
                                 ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.people, color: Colors.green),
+                                      icon: const Icon(
+                                        Icons.people,
+                                        color: Colors.green,
+                                      ),
                                       onPressed: () => viewTeamMembers(team),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.edit, color: AppTheme.primaryBlue),
+                                      icon: const Icon(
+                                        Icons.edit,
+                                        color: AppTheme.primaryBlue,
+                                      ),
                                       onPressed: () => editTeam(team),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red),
-                                      onPressed: () => deleteTeam(team['team_id']),
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () =>
+                                          deleteTeam(team['team_id']),
                                     ),
                                   ],
                                 ),
@@ -246,11 +279,7 @@ class AddEditTeamScreen extends StatefulWidget {
   final Map<String, dynamic>? team;
   final VoidCallback onSaved;
 
-  const AddEditTeamScreen({
-    super.key,
-    this.team,
-    required this.onSaved,
-  });
+  const AddEditTeamScreen({super.key, this.team, required this.onSaved});
 
   @override
   State<AddEditTeamScreen> createState() => _AddEditTeamScreenState();
@@ -277,9 +306,12 @@ class _AddEditTeamScreenState extends State<AddEditTeamScreen> {
 
   Future<void> loadCars() async {
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/company_cars_list.php'));
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/company_cars_list.php'),
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        if (!mounted) return;
         setState(() {
           _cars = data['cars'] ?? [];
         });
@@ -299,7 +331,10 @@ class _AddEditTeamScreenState extends State<AddEditTeamScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCarId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a company car'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Please select a company car'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -321,17 +356,24 @@ class _AddEditTeamScreenState extends State<AddEditTeamScreen> {
           body: json.encode(body),
         );
 
+        if (!mounted) return;
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           if (data['ok'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Team updated successfully'), backgroundColor: Colors.green),
+              const SnackBar(
+                content: Text('Team updated successfully'),
+                backgroundColor: Colors.green,
+              ),
             );
             Navigator.pop(context);
             widget.onSaved();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(data['error'] ?? 'Failed to update'), backgroundColor: Colors.red),
+              SnackBar(
+                content: Text(data['error'] ?? 'Failed to update'),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         }
@@ -342,22 +384,30 @@ class _AddEditTeamScreenState extends State<AddEditTeamScreen> {
           body: json.encode(body),
         );
 
+        if (!mounted) return;
         if (response.statusCode == 200 || response.statusCode == 201) {
           final data = json.decode(response.body);
           if (data['ok'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Team created successfully'), backgroundColor: Colors.green),
+              const SnackBar(
+                content: Text('Team created successfully'),
+                backgroundColor: Colors.green,
+              ),
             );
             Navigator.pop(context);
             widget.onSaved();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(data['error'] ?? 'Failed to create'), backgroundColor: Colors.red),
+              SnackBar(
+                content: Text(data['error'] ?? 'Failed to create'),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         }
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
@@ -384,11 +434,12 @@ class _AddEditTeamScreenState extends State<AddEditTeamScreen> {
                   labelText: 'Team Name',
                   prefixIcon: Icon(Icons.groups),
                 ),
-                validator: (v) => (v?.trim().isEmpty ?? true) ? 'Required' : null,
+                validator: (v) =>
+                    (v?.trim().isEmpty ?? true) ? 'Required' : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
-                value: _selectedCarId,
+                initialValue: _selectedCarId,
                 decoration: const InputDecoration(
                   labelText: 'Company Car',
                   prefixIcon: Icon(Icons.directions_car),
@@ -420,7 +471,9 @@ class _AddEditTeamScreenState extends State<AddEditTeamScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(widget.team == null ? 'Create Team' : 'Update Team'),
+                      : Text(
+                          widget.team == null ? 'Create Team' : 'Update Team',
+                        ),
                 ),
               ),
             ],

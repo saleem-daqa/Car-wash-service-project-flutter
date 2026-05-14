@@ -38,5 +38,5 @@ try {
 
   respond(["members" => $members]);
 } catch (Exception $e) {
-  respond(["error" => "Failed to fetch team members", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to fetch team members"], 500);
 }

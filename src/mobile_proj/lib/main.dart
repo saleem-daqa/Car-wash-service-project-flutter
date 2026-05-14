@@ -26,9 +26,11 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Car Wash App', 
+      title: 'Car Wash App',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       home: _showSplash
           ? SplashScreen(onFinished: _goToLogin)
           : const LoginPage(),

@@ -11,11 +11,11 @@ class RegistrationScreen extends StatefulWidget {
   final String email;
 
   const RegistrationScreen({
-    Key? key,
+    super.key,
     required this.userId,
     required this.username,
     required this.email,
-  }) : super(key: key);
+  });
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -40,9 +40,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           },
         );
 
+        if (!mounted) return;
         if (response.statusCode == 200) {
           final responseBody = response.body.trim();
-          
+
           if (responseBody.isEmpty || !responseBody.startsWith('{')) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -59,7 +60,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             if (data['status'] == 'success') {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setInt('user_id', widget.userId);
-              
+
+              if (!mounted) return;
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
@@ -73,6 +75,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               );
             }
           } catch (jsonError) {
+            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Server response error: $jsonError'),
@@ -89,6 +92,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           );
         }
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Something went wrong: $e'),
@@ -106,10 +110,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       appBar: AppBar(
         title: const Text(
           'Complete Registration',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -130,7 +131,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        const Icon(Icons.person, size: 40, color: Color(0xff0095FF)),
+                        const Icon(
+                          Icons.person,
+                          size: 40,
+                          color: Color(0xff0095FF),
+                        ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -172,8 +177,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   label: 'Car Plate Number',
                   controller: plateNumberController,
                   icon: Icons.confirmation_number,
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Enter plate number' : null,
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Enter plate number'
+                      : null,
                 ),
                 inputField(
                   label: 'Car Brand',
@@ -250,7 +256,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         validator: validator,
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: icon != null ? Icon(icon, color: const Color(0xff0095FF)) : null,
+          prefixIcon: icon != null
+              ? Icon(icon, color: const Color(0xff0095FF))
+              : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey[300]!),
@@ -273,7 +281,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 16,
+          ),
         ),
       ),
     );

@@ -38,7 +38,10 @@ class _ManagerBookingsScreenState extends State<ManagerBookingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading bookings: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error loading bookings: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -133,20 +136,31 @@ class _ManagerBookingsScreenState extends State<ManagerBookingsScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Customer: ${booking['customer_name'] ?? 'N/A'}',
-                                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
                                   ),
                                   if (booking['customer_phone'] != null)
                                     Text(
                                       'Phone: ${booking['customer_phone']}',
-                                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
                                 ],
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
-                                color: getStatusColor(status).withOpacity(0.1),
+                                color: getStatusColor(
+                                  status,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -163,7 +177,11 @@ class _ManagerBookingsScreenState extends State<ManagerBookingsScreen> {
                         const Divider(height: 24),
                         Row(
                           children: [
-                            const Icon(Icons.directions_car, size: 20, color: AppTheme.primaryBlue),
+                            const Icon(
+                              Icons.directions_car,
+                              size: 20,
+                              color: AppTheme.primaryBlue,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               '${car['plate_number'] ?? 'N/A'} - ${car['brand'] ?? ''} ${car['model'] ?? ''}',
@@ -172,14 +190,21 @@ class _ManagerBookingsScreenState extends State<ManagerBookingsScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        if (booking['address'] != null || booking['address_text'] != null)
+                        if (booking['address'] != null ||
+                            booking['address_text'] != null)
                           Row(
                             children: [
-                              const Icon(Icons.location_on, size: 20, color: AppTheme.primaryBlue),
+                              const Icon(
+                                Icons.location_on,
+                                size: 20,
+                                color: AppTheme.primaryBlue,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  booking['address'] ?? booking['address_text'] ?? 'N/A',
+                                  booking['address'] ??
+                                      booking['address_text'] ??
+                                      'N/A',
                                   style: const TextStyle(fontSize: 14),
                                 ),
                               ),
@@ -189,7 +214,11 @@ class _ManagerBookingsScreenState extends State<ManagerBookingsScreen> {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              const Icon(Icons.calendar_today, size: 20, color: AppTheme.primaryBlue),
+                              const Icon(
+                                Icons.calendar_today,
+                                size: 20,
+                                color: AppTheme.primaryBlue,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 '${scheduledDate.day}/${scheduledDate.month}/${scheduledDate.year} ${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}',
@@ -201,7 +230,11 @@ class _ManagerBookingsScreenState extends State<ManagerBookingsScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.payment, size: 20, color: AppTheme.primaryBlue),
+                            const Icon(
+                              Icons.payment,
+                              size: 20,
+                              color: AppTheme.primaryBlue,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Payment: ${(booking['payment_method'] ?? 'cash').toString().toUpperCase()}',
@@ -222,14 +255,22 @@ class _ManagerBookingsScreenState extends State<ManagerBookingsScreen> {
                         const Divider(height: 24),
                         Row(
                           children: [
-                            const Icon(Icons.person, size: 20, color: Colors.orange),
+                            const Icon(
+                              Icons.person,
+                              size: 20,
+                              color: Colors.orange,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Employee: ${booking['employee_name'] ?? 'Not Assigned'}',
                               style: TextStyle(
                                 fontSize: 14,
-                                fontWeight: booking['employee_name'] != null ? FontWeight.bold : FontWeight.normal,
-                                color: booking['employee_name'] != null ? Colors.green : Colors.grey,
+                                fontWeight: booking['employee_name'] != null
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: booking['employee_name'] != null
+                                    ? Colors.green
+                                    : Colors.grey,
                               ),
                             ),
                           ],
@@ -237,14 +278,22 @@ class _ManagerBookingsScreenState extends State<ManagerBookingsScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.groups, size: 20, color: Colors.blue),
+                            const Icon(
+                              Icons.groups,
+                              size: 20,
+                              color: Colors.blue,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Team: ${booking['team_name'] ?? 'Not Assigned'}',
                               style: TextStyle(
                                 fontSize: 14,
-                                fontWeight: booking['team_name'] != null ? FontWeight.bold : FontWeight.normal,
-                                color: booking['team_name'] != null ? Colors.green : Colors.grey,
+                                fontWeight: booking['team_name'] != null
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: booking['team_name'] != null
+                                    ? Colors.green
+                                    : Colors.grey,
                               ),
                             ),
                           ],
