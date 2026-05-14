@@ -9,12 +9,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once 'db.php';
+require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/db.php';
 
-$customer_id = $_GET['customer_id'] ?? '';
+$customer_id = request_param('customer_id', '');
 $type = $_GET['type'] ?? 'all';
+$pagination = pagination_params(50, 100);
+$limit = (int)$pagination["limit"];
+$offset = (int)$pagination["offset"];
 
-if (empty($customer_id)) {
+if (empty($customer_id) || !is_numeric($customer_id) || (int)$customer_id <= 0) {
     echo json_encode([
         "status" => "error",
         "message" => "customer_id is required"
@@ -22,6 +26,8 @@ if (empty($customer_id)) {
     $conn->close();
     exit;
 }
+
+$customer_id = (int)$customer_id;
 
 $statusFilter = "";
 if ($type === 'current') {
@@ -50,6 +56,7 @@ JOIN services s ON b.service_id = s.service_id
 JOIN customer_cars cc ON b.car_id = cc.car_id
 WHERE b.customer_id = ? $statusFilter
 ORDER BY b.created_at DESC
+LIMIT $limit OFFSET $offset
 ";
 
 $stmt = $conn->prepare($sql);
@@ -100,7 +107,8 @@ while ($row = $result->fetch_assoc()) {
 
 echo json_encode([
     "status" => "success",
-    "data" => $bookings
+    "data" => $bookings,
+    "pagination" => pagination_payload(count($bookings), $pagination)
 ]);
 
 $stmt->close();

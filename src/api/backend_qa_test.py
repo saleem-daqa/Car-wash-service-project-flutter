@@ -124,6 +124,58 @@ class BackendStaticQaTest(unittest.TestCase):
         self.assertLess(wallet_lock_pos, booking_insert_pos)
         self.assertLess(booking_insert_pos, wallet_update_pos)
 
+    def test_database_schema_has_integrity_checks_and_query_indexes(self):
+        required_schema_clauses = [
+            "KEY idx_customer_cars_customer_created (customer_id, created_at)",
+            "KEY idx_services_active (is_active, service_id)",
+            "KEY idx_company_cars_active (is_active, company_car_id)",
+            "KEY idx_team_members_employee (employee_id)",
+            "KEY idx_bookings_customer_status_created (customer_id, status, created_at)",
+            "KEY idx_bookings_status_created (status, created_at)",
+            "KEY idx_bookings_service (service_id)",
+            "KEY idx_bookings_car (car_id)",
+            "KEY idx_feedback_customer_created (customer_id, created_at)",
+            "CHECK (price >= 0)",
+            "CHECK (duration_minutes > 0)",
+            "CHECK (price_total >= 0)",
+            "CHECK (balance >= 0)",
+            "CHECK (points >= 0)",
+        ]
+
+        missing = [clause for clause in required_schema_clauses if clause not in SCHEMA]
+        self.assertEqual(missing, [], f"Missing DB integrity/performance clauses: {missing}")
+
+    def test_database_migration_for_existing_installs_is_present(self):
+        migration = API_DIR / "migrations" / "2026_05_14_database_performance_integrity.sql"
+        self.assertTrue(migration.exists(), "DB migration for existing installs is missing")
+        source = migration.read_text()
+        for clause in (
+            "idx_bookings_customer_status_created",
+            "idx_bookings_status_created",
+            "chk_wallets_balance_non_negative",
+            "chk_bookings_price_non_negative",
+        ):
+            self.assertIn(clause, source)
+
+    def test_large_collection_endpoints_support_safe_pagination(self):
+        helpers = (API_DIR / "helpers.php").read_text()
+        self.assertIn("function pagination_params", helpers)
+        self.assertIn("function pagination_payload", helpers)
+
+        for endpoint in (
+            "customer_bookings.php",
+            "get_current_bookings.php",
+            "get_past_bookings.php",
+            "manager_bookings.php",
+            "get_all_bookings_for_employees.php",
+            "get_all_vehicles.php",
+        ):
+            source = (API_DIR / endpoint).read_text()
+            self.assertIn("pagination_params", source, endpoint)
+            self.assertIn("pagination_payload", source, endpoint)
+            self.assertIn("LIMIT", source, endpoint)
+            self.assertIn("OFFSET", source, endpoint)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
