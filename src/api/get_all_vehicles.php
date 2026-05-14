@@ -8,9 +8,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once 'db.php';
+require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/db.php';
 
-$customer_id = isset($_POST['customer_id']) ? intval($_POST['customer_id']) : 0;
+$customer_id = request_int_param('customer_id', 0, 0, PHP_INT_MAX);
+$pagination = pagination_params(100, 200);
+$limit = (int)$pagination["limit"];
+$offset = (int)$pagination["offset"];
+$search = trim((string)request_param('search', ''));
+$sort = strtolower(trim((string)request_param('sort', 'created_at')));
+$direction = sort_direction_param();
+
+$sortColumns = [
+    'created_at' => 'created_at',
+    'plate_number' => 'plate_number',
+    'brand' => 'brand',
+    'model' => 'model',
+];
+$sortColumn = $sortColumns[$sort] ?? 'created_at';
 
 if ($customer_id === 0) {
     echo json_encode([
@@ -20,11 +35,28 @@ if ($customer_id === 0) {
     exit;
 }
 
+$where = ["customer_id = ?"];
+$types = "i";
+$params = [$customer_id];
+
+if ($search !== '') {
+    $like = "%" . $search . "%";
+    $where[] = "(plate_number LIKE ? OR brand LIKE ? OR model LIKE ? OR color LIKE ?)";
+    $types .= "ssss";
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+}
+
+$whereSql = implode(" AND ", $where);
+
 $stmt = $conn->prepare(
     "SELECT car_id, plate_number, type, brand, model, color, notes 
      FROM customer_cars 
-     WHERE customer_id = ? 
-     ORDER BY created_at DESC"
+     WHERE $whereSql
+     ORDER BY $sortColumn $direction
+     LIMIT $limit OFFSET $offset"
 );
 
 if (!$stmt) {
@@ -36,7 +68,7 @@ if (!$stmt) {
     exit;
 }
 
-$stmt->bind_param("i", $customer_id);
+bind_statement_params($stmt, $types, $params);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -56,7 +88,8 @@ while ($row = $result->fetch_assoc()) {
 echo json_encode([
     'status' => 'success',
     'vehicles' => $vehicles,
-    'count' => count($vehicles)
+    'count' => count($vehicles),
+    'pagination' => pagination_payload(count($vehicles), $pagination)
 ]);
 
 $stmt->close();

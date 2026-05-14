@@ -9,11 +9,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once 'db.php';
+require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/db.php';
 
-$user_id = $_POST['user_id'] ?? $_GET['user_id'] ?? 0;
+$user_id = request_param('user_id', 0);
+$pagination = pagination_params(50, 100);
+$limit = (int)$pagination["limit"];
+$offset = (int)$pagination["offset"];
 
-if ($user_id == 0) {
+if (!is_numeric($user_id) || (int)$user_id <= 0) {
     echo json_encode([
         "status" => "error",
         "message" => "User ID missing"
@@ -21,6 +25,8 @@ if ($user_id == 0) {
     $conn->close();
     exit;
 }
+
+$user_id = (int)$user_id;
 
 $sql = "SELECT 
             b.booking_id AS id,
@@ -35,7 +41,8 @@ $sql = "SELECT
         JOIN customer_cars cc ON b.car_id = cc.car_id
         WHERE b.customer_id = ?
         AND b.status IN ('PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS')
-        ORDER BY b.scheduled_at DESC";
+        ORDER BY b.scheduled_at DESC
+        LIMIT $limit OFFSET $offset";
 
 $stmt = $conn->prepare($sql);
 
@@ -77,7 +84,8 @@ while ($row = $result->fetch_assoc()) {
 
 echo json_encode([
     "status" => "success",
-    "bookings" => $bookings
+    "bookings" => $bookings,
+    "pagination" => pagination_payload(count($bookings), $pagination)
 ]);
 
 $stmt->close();

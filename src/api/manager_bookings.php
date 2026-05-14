@@ -9,7 +9,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once 'db.php';
+require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/db.php';
+
+$pagination = pagination_params(50, 100);
+$limit = (int)$pagination["limit"];
+$offset = (int)$pagination["offset"];
+$allowedStatuses = ['PENDING', 'CONFIRMED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+$status = strtoupper(trim((string)request_param('status', '')));
+$search = trim((string)request_param('search', ''));
+
+$where = [];
+$types = "";
+$params = [];
+
+if (in_array($status, $allowedStatuses, true)) {
+  $where[] = "b.status = ?";
+  $types .= "s";
+  $params[] = $status;
+}
+
+if ($search !== '') {
+  $like = "%" . $search . "%";
+  $where[] = "(u.full_name LIKE ? OR u.phone LIKE ? OR cc.plate_number LIKE ? OR s.name LIKE ?)";
+  $types .= "ssss";
+  $params[] = $like;
+  $params[] = $like;
+  $params[] = $like;
+  $params[] = $like;
+}
+
+$whereSql = $where ? "WHERE " . implode(" AND ", $where) : "";
 
 $sql = "
 SELECT
@@ -40,11 +70,25 @@ JOIN users u ON b.customer_id = u.user_id
 LEFT JOIN booking_assignments ba ON ba.booking_id = b.booking_id
 LEFT JOIN users e ON ba.employee_id = e.user_id
 LEFT JOIN teams t ON ba.team_id = t.team_id
+$whereSql
 ORDER BY b.created_at DESC
-LIMIT 50
+LIMIT $limit OFFSET $offset
 ";
 
-$result = $conn->query($sql);
+$stmt = $conn->prepare($sql);
+
+if (!$stmt) {
+  echo json_encode([
+    "status" => "error",
+    "message" => "Prepare failed",
+  ]);
+  $conn->close();
+  exit;
+}
+
+bind_statement_params($stmt, $types, $params);
+$stmt->execute();
+$result = $stmt->get_result();
 
 $bookings = [];
 
@@ -77,8 +121,10 @@ while ($row = $result->fetch_assoc()) {
 
 echo json_encode([
     "status" => "success",
-    "bookings" => $bookings
+    "bookings" => $bookings,
+    "pagination" => pagination_payload(count($bookings), $pagination)
 ]);
 
+$stmt->close();
 $conn->close();
 ?>

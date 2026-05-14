@@ -36,7 +36,9 @@ CREATE TABLE customer_cars (
   FOREIGN KEY (customer_id) REFERENCES users(user_id)
     ON DELETE CASCADE,
 
-  UNIQUE KEY uq_customer_plate (customer_id, plate_number)
+  UNIQUE KEY uq_customer_plate (customer_id, plate_number),
+  KEY idx_customer_cars_customer_created (customer_id, created_at),
+  KEY idx_customer_cars_plate (plate_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 3) Services
@@ -49,7 +51,10 @@ CREATE TABLE services (
   is_active         TINYINT(1) NOT NULL DEFAULT 1,
   created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  UNIQUE KEY uq_services_name (name)
+  UNIQUE KEY uq_services_name (name),
+  KEY idx_services_active (is_active, service_id),
+  CHECK (price >= 0),
+  CHECK (duration_minutes > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 4) Company Cars
@@ -60,7 +65,8 @@ CREATE TABLE company_cars (
   is_active       TINYINT(1) NOT NULL DEFAULT 1,
   created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  UNIQUE KEY uq_company_car_plate (plate_number)
+  UNIQUE KEY uq_company_car_plate (plate_number),
+  KEY idx_company_cars_active (is_active, company_car_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 5) Teams
@@ -89,7 +95,9 @@ CREATE TABLE team_members (
     ON DELETE CASCADE,
 
   FOREIGN KEY (employee_id) REFERENCES users(user_id)
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+
+  KEY idx_team_members_employee (employee_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 7) Bookings
@@ -117,7 +125,12 @@ CREATE TABLE bookings (
   
   KEY idx_bookings_status (status),
   KEY idx_bookings_customer (customer_id),
-  KEY idx_bookings_scheduled (scheduled_at)
+  KEY idx_bookings_scheduled (scheduled_at),
+  KEY idx_bookings_customer_status_created (customer_id, status, created_at),
+  KEY idx_bookings_status_created (status, created_at),
+  KEY idx_bookings_service (service_id),
+  KEY idx_bookings_car (car_id),
+  CHECK (price_total >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 8) Booking Assignments
@@ -139,6 +152,7 @@ CREATE TABLE booking_assignments (
   FOREIGN KEY (assigned_by) REFERENCES users(user_id),
 
   UNIQUE KEY uq_assignment_booking (booking_id),
+  KEY idx_assignments_booking_employee (booking_id, employee_id),
   KEY idx_assignments_employee (employee_id),
   KEY idx_assignments_team (team_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -152,7 +166,10 @@ CREATE TABLE wallets (
                ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (customer_id) REFERENCES users(user_id)
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+
+  CHECK (balance >= 0),
+  CHECK (points >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 10) Wallet Transactions
@@ -194,7 +211,8 @@ CREATE TABLE ratings_feedback (
   FOREIGN KEY (customer_id) REFERENCES users(user_id),
 
   CHECK (rating BETWEEN 1 AND 5),
-  UNIQUE KEY uq_feedback_booking (booking_id)
+  UNIQUE KEY uq_feedback_booking (booking_id),
+  KEY idx_feedback_customer_created (customer_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SHOW TABLES;

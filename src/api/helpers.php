@@ -87,6 +87,83 @@ function clean($value)
     return trim(htmlspecialchars($value ?? "", ENT_QUOTES, "UTF-8"));
 }
 
+function request_param(string $key, $default = null)
+{
+    if (array_key_exists($key, $_GET)) {
+        return $_GET[$key];
+    }
+
+    if (array_key_exists($key, $_POST)) {
+        return $_POST[$key];
+    }
+
+    return $default;
+}
+
+function request_int_param(string $key, int $default = 0, int $min = 0, int $max = PHP_INT_MAX): int
+{
+    $value = request_param($key, $default);
+    if (!is_numeric($value)) {
+        return $default;
+    }
+
+    $intValue = (int)$value;
+    if ($intValue < $min) {
+        return $min;
+    }
+
+    if ($intValue > $max) {
+        return $max;
+    }
+
+    return $intValue;
+}
+
+function pagination_params(int $defaultLimit = 50, int $maxLimit = 100): array
+{
+    $limit = request_int_param("limit", $defaultLimit, 1, $maxLimit);
+    $offset = request_int_param("offset", 0, 0, PHP_INT_MAX);
+
+    return [
+        "limit" => $limit,
+        "offset" => $offset,
+        "page" => intdiv($offset, $limit) + 1,
+    ];
+}
+
+function pagination_payload(int $count, array $pagination): array
+{
+    $limit = (int)$pagination["limit"];
+
+    return [
+        "limit" => $limit,
+        "offset" => (int)$pagination["offset"],
+        "page" => (int)$pagination["page"],
+        "count" => $count,
+        "has_more" => $count === $limit,
+    ];
+}
+
+function sort_direction_param(string $key = "direction", string $default = "DESC"): string
+{
+    $direction = strtoupper((string)request_param($key, $default));
+    return $direction === "ASC" ? "ASC" : "DESC";
+}
+
+function bind_statement_params(mysqli_stmt $stmt, string $types, array &$params): void
+{
+    if ($types === "") {
+        return;
+    }
+
+    $bindParams = [$types];
+    foreach ($params as $index => $value) {
+        $bindParams[] = &$params[$index];
+    }
+
+    call_user_func_array([$stmt, "bind_param"], $bindParams);
+}
+
 /**
  * Read JSON body (alternative name used in some APIs)
  */
