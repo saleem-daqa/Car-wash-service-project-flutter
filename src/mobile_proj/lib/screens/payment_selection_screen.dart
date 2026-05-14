@@ -134,9 +134,11 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
 
     try {
       final walletData = await walletFuture;
+      if (!mounted) return;
       final walletBalance = walletData?['balance'] ?? 0.0;
 
-      if (selectedPaymentMethod == wallet && walletBalance < widget.bookingAmount) {
+      if (selectedPaymentMethod == wallet &&
+          walletBalance < widget.bookingAmount) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Insufficient wallet balance'),
@@ -153,15 +155,6 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
 
       if (!mounted) return;
 
-      String paymentMethodText;
-      if (selectedPaymentMethod == cash) {
-        paymentMethodText = 'Cash payment';
-      } else if (selectedPaymentMethod == visaCard) {
-        paymentMethodText = 'Visa Card payment';
-      } else {
-        paymentMethodText = 'Wallet payment';
-      }
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Payment successful! Booking #$bookingId created'),
@@ -171,7 +164,9 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const CustomerHomeScreen(initialTab: 2)),
+        MaterialPageRoute(
+          builder: (_) => const CustomerHomeScreen(initialTab: 2),
+        ),
         (route) => false,
       );
     } catch (e) {
@@ -228,7 +223,7 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: color.withOpacity(0.2),
+                        color: color.withValues(alpha: 0.2),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -240,10 +235,16 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isSelected ? color.withOpacity(0.1) : Colors.grey.shade100,
+                    color: isSelected
+                        ? color.withValues(alpha: 0.1)
+                        : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(icon, color: isSelected ? color : Colors.grey, size: 24),
+                  child: Icon(
+                    icon,
+                    color: isSelected ? color : Colors.grey,
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -264,13 +265,17 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
                             ? const SizedBox(
                                 height: 12,
                                 width: 12,
-                                child: CircularProgressIndicator(strokeWidth: 1.5),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                ),
                               )
                             : Text(
                                 'Balance: ${walletBalance.toStringAsFixed(2)} ₪',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: canUseWallet ? Colors.green : Colors.red,
+                                  color: canUseWallet
+                                      ? Colors.green
+                                      : Colors.red,
                                 ),
                               ),
                       ],
@@ -320,7 +325,7 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -388,7 +393,11 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
             const SizedBox(height: 16),
             buildPaymentOption(cash, Icons.money, Colors.green),
             buildPaymentOption(visaCard, Icons.credit_card, Colors.blue),
-            buildPaymentOption(wallet, Icons.account_balance_wallet, Colors.purple),
+            buildPaymentOption(
+              wallet,
+              Icons.account_balance_wallet,
+              Colors.purple,
+            ),
             const SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
@@ -409,7 +418,9 @@ class _PaymentSelectionScreenState extends State<PaymentSelectionScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Text(

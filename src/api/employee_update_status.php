@@ -22,5 +22,5 @@ try {
   $stmt->execute();
   respond(["ok" => true, "affected" => (int)$stmt->affected_rows]);
 } catch (Exception $e) {
-  respond(["error" => "Failed to update status", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to update status"], 500);
 }

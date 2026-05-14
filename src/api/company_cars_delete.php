@@ -35,5 +35,5 @@ try {
   $stmt->execute();
   respond(["ok" => true, "affected" => (int)$stmt->affected_rows]);
 } catch (mysqli_sql_exception $e) {
-  respond(["error" => "Failed to delete company car", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to delete company car"], 500);
 }

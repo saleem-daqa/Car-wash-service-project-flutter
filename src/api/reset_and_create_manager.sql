@@ -1,5 +1,5 @@
--- Reset Database and Create Manager Account
--- This script will delete all existing data and create a fresh manager account
+-- Reset Database
+-- This script will delete all existing data.
 -- IMPORTANT: This deletes ALL data in the database!
 
 USE car_wash_db;
@@ -53,22 +53,14 @@ ALTER TABLE services AUTO_INCREMENT = 1;
 ALTER TABLE company_cars AUTO_INCREMENT = 1;
 ALTER TABLE teams AUTO_INCREMENT = 1;
 
--- Create a new manager account
--- Password is stored as plain text (no hashing)
-INSERT INTO users (full_name, email, phone, password_hash, role, is_active)
-VALUES (
-    'Manager',
-    'manager@carwash.com',
-    '0501234567',
-    'manager123',  -- Plain text password
-    'MANAGER',
-    1
-);
+-- Create the manager account through create_manager.php after this reset.
+-- The API hashes the password before storing it.
+-- Example:
+-- curl -X POST http://localhost:8888/api/create_manager.php \
+--   -d "full_name=Manager" \
+--   -d "email=manager@carwash.com" \
+--   -d "phone=0501234567" \
+--   -d "password=manager123"
 
--- Verify the manager account was created
-SELECT user_id, full_name, email, phone, role, is_active 
-FROM users 
-WHERE role = 'MANAGER';
-
--- Show all users (should only show the manager)
+-- Show all users (should be empty until you create accounts through the API)
 SELECT user_id, full_name, email, role FROM users;

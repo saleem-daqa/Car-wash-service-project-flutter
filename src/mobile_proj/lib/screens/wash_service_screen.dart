@@ -9,10 +9,7 @@ import '../config/api_config.dart';
 class WashServiceScreen extends StatefulWidget {
   final Vehicle vehicle;
 
-  const WashServiceScreen({
-    super.key,
-    required this.vehicle,
-  });
+  const WashServiceScreen({super.key, required this.vehicle});
 
   @override
   State<WashServiceScreen> createState() => _WashServiceScreenState();
@@ -33,13 +30,15 @@ class _WashServiceScreenState extends State<WashServiceScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         List<dynamic> servicesList = [];
-        
+
         if (data['status'] == 'success' && data['services'] != null) {
           servicesList = data['services'] as List;
-        } else if (data['ok'] == true && data['data'] != null && data['data']['services'] != null) {
+        } else if (data['ok'] == true &&
+            data['data'] != null &&
+            data['data']['services'] != null) {
           servicesList = data['data']['services'] as List;
         }
-        
+
         if (servicesList.isNotEmpty) {
           return servicesList.map((s) {
             final price = double.tryParse((s['price'] ?? 0).toString()) ?? 0.0;
@@ -56,7 +55,10 @@ class _WashServiceScreenState extends State<WashServiceScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load services: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Could not load services: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -86,10 +88,7 @@ class _WashServiceScreenState extends State<WashServiceScreen> {
       appBar: AppBar(
         title: const Text(
           'Select Wash Service',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -105,7 +104,11 @@ class _WashServiceScreenState extends State<WashServiceScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    const Icon(Icons.directions_car, size: 40, color: Color(0xff0095FF)),
+                    const Icon(
+                      Icons.directions_car,
+                      size: 40,
+                      color: Color(0xff0095FF),
+                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -113,16 +116,25 @@ class _WashServiceScreenState extends State<WashServiceScreen> {
                         children: [
                           Text(
                             '${widget.vehicle.brand} ${widget.vehicle.model}',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Plate: ${widget.vehicle.plate}',
-                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
                           ),
                           Text(
                             'Type: ${widget.vehicle.type}',
-                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
                       ),
@@ -148,7 +160,9 @@ class _WashServiceScreenState extends State<WashServiceScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
+                  if (snapshot.hasError ||
+                      snapshot.data == null ||
+                      snapshot.data!.isEmpty) {
                     return Center(child: Text('No services available'));
                   }
                   final services = snapshot.data!;
@@ -163,24 +177,33 @@ class _WashServiceScreenState extends State<WashServiceScreen> {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           leading: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.1),
+                              color: color.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(icon, color: color, size: 32),
                           ),
                           title: Text(
                             service.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
                               service.description,
-                              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
                             ),
                           ),
                           trailing: Text(

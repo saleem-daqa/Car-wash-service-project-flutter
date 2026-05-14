@@ -37,15 +37,13 @@ class _ManagerCreateTeamAccountScreenState
                 (route) => false,
               );
             },
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
+
   final _formKey = GlobalKey<FormState>();
 
   final _fullName = TextEditingController();
@@ -111,7 +109,7 @@ class _ManagerCreateTeamAccountScreenState
 
       if (response.statusCode == 201 && data['ok'] == true) {
         final userId = data['user_id'];
-        
+
         if (_selectedTeamId != null && userId != null) {
           try {
             final assignResponse = await http.post(
@@ -122,29 +120,37 @@ class _ManagerCreateTeamAccountScreenState
                 'employee_id': userId,
               }),
             );
-            
+
+            if (!mounted) return;
             if (assignResponse.statusCode == 200) {
               final assignData = json.decode(assignResponse.body);
               if (assignData['ok'] == true) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Employee account created and assigned to team successfully!'),
+                    content: Text(
+                      'Employee account created and assigned to team successfully!',
+                    ),
                     backgroundColor: Colors.green,
                   ),
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Employee created but team assignment failed: ${assignData['error'] ?? 'Unknown error'}'),
+                    content: Text(
+                      'Employee created but team assignment failed: ${assignData['error'] ?? 'Unknown error'}',
+                    ),
                     backgroundColor: Colors.orange,
                   ),
                 );
               }
             }
           } catch (e) {
+            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Employee created but team assignment failed: $e'),
+                content: Text(
+                  'Employee created but team assignment failed: $e',
+                ),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -157,7 +163,7 @@ class _ManagerCreateTeamAccountScreenState
             ),
           );
         }
-        
+
         _fullName.clear();
         _email.clear();
         _phone.clear();
@@ -174,10 +180,7 @@ class _ManagerCreateTeamAccountScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -275,7 +278,7 @@ class _ManagerCreateTeamAccountScreenState
                         prefixIcon: Icon(Icons.person_outline),
                       ),
                       validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
@@ -301,7 +304,7 @@ class _ManagerCreateTeamAccountScreenState
                         prefixIcon: Icon(Icons.phone_outlined),
                       ),
                       validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
@@ -331,7 +334,7 @@ class _ManagerCreateTeamAccountScreenState
                       future: _teamsFuture,
                       builder: (context, snapshot) {
                         return DropdownButtonFormField<int>(
-                          value: _selectedTeamId,
+                          initialValue: _selectedTeamId,
                           decoration: const InputDecoration(
                             labelText: 'Assign to Team (Optional)',
                             prefixIcon: Icon(Icons.groups),
@@ -339,7 +342,9 @@ class _ManagerCreateTeamAccountScreenState
                           items: _teams.map((team) {
                             return DropdownMenuItem<int>(
                               value: team['team_id'],
-                              child: Text('${team['name']} (${team['member_count'] ?? 0} members)'),
+                              child: Text(
+                                '${team['name']} (${team['member_count'] ?? 0} members)',
+                              ),
                             );
                           }).toList(),
                           onChanged: (v) => setState(() => _selectedTeamId = v),
@@ -351,7 +356,9 @@ class _ManagerCreateTeamAccountScreenState
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const TeamsManagementScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const TeamsManagementScreen(),
+                          ),
                         ).then((_) => loadTeams());
                       },
                       icon: const Icon(Icons.add),
@@ -368,11 +375,15 @@ class _ManagerCreateTeamAccountScreenState
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : const Icon(Icons.person_add_alt_1_outlined),
-                        label: Text(_isLoading ? 'Creating...' : 'Create account'),
+                        label: Text(
+                          _isLoading ? 'Creating...' : 'Create account',
+                        ),
                       ),
                     ),
                   ],

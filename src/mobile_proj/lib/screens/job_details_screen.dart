@@ -56,31 +56,33 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           final jobData = data['job'];
           setState(() {
             _jobDetails = jobData;
-            _job = _job ?? Job(
-              id: jobData['booking_id'].toString(),
-              customerName: jobData['customer_name'] ?? 'Customer',
-              serviceType: jobData['service_name'] ?? 'Service',
-              vehiclePlate: jobData['car_plate'] ?? '',
-              latitude: jobData['latitude'] != null
-                  ? (jobData['latitude'] is String
-                      ? double.tryParse(jobData['latitude']) ?? 0.0
-                      : (jobData['latitude'] as num).toDouble())
-                  : 0.0,
-              longitude: jobData['longitude'] != null
-                  ? (jobData['longitude'] is String
-                      ? double.tryParse(jobData['longitude']) ?? 0.0
-                      : (jobData['longitude'] as num).toDouble())
-                  : 0.0,
-              addressText: jobData['address_text'] ?? '',
-              scheduledDate: jobData['scheduled_at'] != null
-                  ? DateTime.parse(jobData['scheduled_at'])
-                  : DateTime.now(),
-              scheduledTime: jobData['scheduled_at'] != null
-                  ? '${DateTime.parse(jobData['scheduled_at']).hour}:${DateTime.parse(jobData['scheduled_at']).minute.toString().padLeft(2, '0')}'
-                  : 'N/A',
-              paymentMethod: jobData['payment_method'] ?? 'cash',
-              status: _mapStatusFromApi(jobData['status'] ?? 'ASSIGNED'),
-            );
+            _job =
+                _job ??
+                Job(
+                  id: jobData['booking_id'].toString(),
+                  customerName: jobData['customer_name'] ?? 'Customer',
+                  serviceType: jobData['service_name'] ?? 'Service',
+                  vehiclePlate: jobData['car_plate'] ?? '',
+                  latitude: jobData['latitude'] != null
+                      ? (jobData['latitude'] is String
+                            ? double.tryParse(jobData['latitude']) ?? 0.0
+                            : (jobData['latitude'] as num).toDouble())
+                      : 0.0,
+                  longitude: jobData['longitude'] != null
+                      ? (jobData['longitude'] is String
+                            ? double.tryParse(jobData['longitude']) ?? 0.0
+                            : (jobData['longitude'] as num).toDouble())
+                      : 0.0,
+                  addressText: jobData['address_text'] ?? '',
+                  scheduledDate: jobData['scheduled_at'] != null
+                      ? DateTime.parse(jobData['scheduled_at'])
+                      : DateTime.now(),
+                  scheduledTime: jobData['scheduled_at'] != null
+                      ? '${DateTime.parse(jobData['scheduled_at']).hour}:${DateTime.parse(jobData['scheduled_at']).minute.toString().padLeft(2, '0')}'
+                      : 'N/A',
+                  paymentMethod: jobData['payment_method'] ?? 'cash',
+                  status: _mapStatusFromApi(jobData['status'] ?? 'ASSIGNED'),
+                );
             if (_job != null) {
               _job!.status = _mapStatusFromApi(jobData['status'] ?? 'ASSIGNED');
             }
@@ -141,7 +143,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     if (!opened && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Could not open maps app. Please install a maps application.'),
+          content: Text(
+            'Could not open maps app. Please install a maps application.',
+          ),
           backgroundColor: Colors.orange,
         ),
       );
@@ -154,22 +158,22 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
     setState(() => _isLoading = true);
 
-              try {
-                final prefs = await SharedPreferences.getInstance();
-                final employeeId = prefs.getInt('user_id') ?? 0;
-                
-                if (employeeId == 0) {
-                  throw Exception('Employee ID not found');
-                }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final employeeId = prefs.getInt('user_id') ?? 0;
 
-                final response = await http.post(
-                  Uri.parse(ApiConfig.bookingUpdateStatusUrl),
-                  body: {
-                    'booking_id': bookingId,
-                    'action': 'start',
-                    'employee_id': employeeId.toString(),
-                  },
-                );
+      if (employeeId == 0) {
+        throw Exception('Employee ID not found');
+      }
+
+      final response = await http.post(
+        Uri.parse(ApiConfig.bookingUpdateStatusUrl),
+        body: {
+          'booking_id': bookingId,
+          'action': 'start',
+          'employee_id': employeeId.toString(),
+        },
+      );
 
       if (!mounted) return;
 
@@ -177,6 +181,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
           await _loadJobDetails();
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Job started successfully'),
@@ -219,26 +224,25 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Finish Job'),
-        content: const Text('Are you sure you want to mark this job as completed?'),
+        content: const Text(
+          'Are you sure you want to mark this job as completed?',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               setState(() => _isLoading = true);
 
               try {
                 final response = await http.post(
                   Uri.parse(ApiConfig.bookingUpdateStatusUrl),
-                  body: {
-                    'booking_id': bookingId,
-                    'action': 'finish',
-                  },
+                  body: {'booking_id': bookingId, 'action': 'finish'},
                 );
 
                 if (!mounted) return;
@@ -247,8 +251,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   final data = json.decode(response.body);
                   if (data['status'] == 'success') {
                     await _loadJobDetails();
+                    if (!mounted) return;
                     final pointsAdded = data['points_added'] ?? 0;
-                    final pointsExact = data['points_exact'] ?? pointsAdded.toDouble();
+                    final pointsExact =
+                        data['points_exact'] ?? pointsAdded.toDouble();
                     final pricePaid = data['price_paid'] ?? 0.0;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -261,11 +267,14 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                         duration: const Duration(seconds: 4),
                       ),
                     );
-                    if (mounted) Navigator.pop(context);
+                    if (!mounted) return;
+                    Navigator.pop(context);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(data['message'] ?? 'Could not finish job'),
+                        content: Text(
+                          data['message'] ?? 'Could not finish job',
+                        ),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -291,10 +300,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 if (mounted) setState(() => _isLoading = false);
               }
             },
-            child: const Text(
-              'Confirm',
-              style: TextStyle(color: Colors.green),
-            ),
+            child: const Text('Confirm', style: TextStyle(color: Colors.green)),
           ),
         ],
       ),
@@ -318,8 +324,11 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.info_outline,
-                size: 52, color: AppTheme.primaryBlue.withOpacity(0.65)),
+            Icon(
+              Icons.info_outline,
+              size: 52,
+              color: AppTheme.primaryBlue.withValues(alpha: 0.65),
+            ),
             const SizedBox(height: 12),
             const Text(
               'No job selected',
@@ -349,10 +358,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -362,9 +371,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       const SizedBox(width: 8),
                       Text(
                         j.id,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                color: AppTheme.darkBlue,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.darkBlue,
                           fontSize: 18,
                         ),
                       ),
@@ -372,29 +381,59 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   ),
                   const Divider(),
                   _buildDetailRow(Icons.person, 'Customer', j.customerName),
-                  if (_jobDetails != null && _jobDetails!['customer_phone'] != null) ...[
+                  if (_jobDetails != null &&
+                      _jobDetails!['customer_phone'] != null) ...[
                     const SizedBox(height: 12),
-                    _buildDetailRow(Icons.phone, 'Phone', _jobDetails!['customer_phone'] ?? 'N/A'),
+                    _buildDetailRow(
+                      Icons.phone,
+                      'Phone',
+                      _jobDetails!['customer_phone'] ?? 'N/A',
+                    ),
                   ],
-                  if (_jobDetails != null && _jobDetails!['customer_email'] != null) ...[
+                  if (_jobDetails != null &&
+                      _jobDetails!['customer_email'] != null) ...[
                     const SizedBox(height: 12),
-                    _buildDetailRow(Icons.email, 'Email', _jobDetails!['customer_email'] ?? 'N/A'),
+                    _buildDetailRow(
+                      Icons.email,
+                      'Email',
+                      _jobDetails!['customer_email'] ?? 'N/A',
+                    ),
                   ],
                   const SizedBox(height: 12),
-                  _buildDetailRow(Icons.local_car_wash, 'Service', j.serviceType),
+                  _buildDetailRow(
+                    Icons.local_car_wash,
+                    'Service',
+                    j.serviceType,
+                  ),
                   const SizedBox(height: 12),
-                  _buildDetailRow(Icons.directions_car, 'Vehicle Plate', j.vehiclePlate),
-                  if (_jobDetails != null && _jobDetails!['car_brand'] != null) ...[
+                  _buildDetailRow(
+                    Icons.directions_car,
+                    'Vehicle Plate',
+                    j.vehiclePlate,
+                  ),
+                  if (_jobDetails != null &&
+                      _jobDetails!['car_brand'] != null) ...[
                     const SizedBox(height: 12),
-                    _buildDetailRow(Icons.directions_car, 'Brand', '${_jobDetails!['car_brand']} ${_jobDetails!['car_model'] ?? ''}'),
+                    _buildDetailRow(
+                      Icons.directions_car,
+                      'Brand',
+                      '${_jobDetails!['car_brand']} ${_jobDetails!['car_model'] ?? ''}',
+                    ),
                   ],
                   const SizedBox(height: 12),
-                  _buildDetailRow(Icons.calendar_today, 'Date', 
-                    '${j.scheduledDate.day}/${j.scheduledDate.month}/${j.scheduledDate.year}'),
+                  _buildDetailRow(
+                    Icons.calendar_today,
+                    'Date',
+                    '${j.scheduledDate.day}/${j.scheduledDate.month}/${j.scheduledDate.year}',
+                  ),
                   const SizedBox(height: 12),
                   _buildDetailRow(Icons.access_time, 'Time', j.scheduledTime),
                   const SizedBox(height: 12),
-                  _buildDetailRow(Icons.payment, 'Payment Method', _getPaymentMethodText(j.paymentMethod)),
+                  _buildDetailRow(
+                    Icons.payment,
+                    'Payment Method',
+                    _getPaymentMethodText(j.paymentMethod),
+                  ),
                   if (j.notes != null && j.notes!.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     _buildDetailRow(Icons.note, 'Notes', j.notes!),
@@ -444,7 +483,11 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.location_city, color: Colors.green[700], size: 20),
+                          Icon(
+                            Icons.location_city,
+                            color: Colors.green[700],
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -479,7 +522,11 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.my_location, color: Colors.blue[700], size: 20),
+                        Icon(
+                          Icons.my_location,
+                          color: Colors.blue[700],
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -512,7 +559,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               ),
             ),
           ),
-          if (j.status == JobStatus.assigned || j.status == JobStatus.inProgress) ...[
+          if (j.status == JobStatus.assigned ||
+              j.status == JobStatus.inProgress) ...[
             const SizedBox(height: 16),
             Card(
               child: Padding(
@@ -530,7 +578,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : const Icon(Icons.play_arrow),
@@ -553,11 +603,15 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : const Icon(Icons.check_circle),
-                          label: Text(_isLoading ? 'Finishing...' : 'Finish Job'),
+                          label: Text(
+                            _isLoading ? 'Finishing...' : 'Finish Job',
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue[600],
                             foregroundColor: Colors.white,

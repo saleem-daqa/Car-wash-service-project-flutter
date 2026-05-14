@@ -53,5 +53,5 @@ try {
   if ($e->getCode() == 1062) {
     respond(["error" => "Employee is already in this team"], 409);
   }
-  respond(["error" => "Failed to assign employee", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to assign employee"], 500);
 }

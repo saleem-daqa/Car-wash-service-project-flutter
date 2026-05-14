@@ -47,7 +47,8 @@ class Booking {
           scheduledTime = timeStr;
         } else {
           scheduledDate = DateTime.parse(json['booking_date'].toString());
-          scheduledTime = '${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}';
+          scheduledTime =
+              '${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}';
         }
       } catch (e) {
         scheduledDate = DateTime.now();

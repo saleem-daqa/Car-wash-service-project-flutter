@@ -32,5 +32,5 @@ try {
   respond(["ok" => true, "affected" => (int)$stmt->affected_rows]);
 } catch (mysqli_sql_exception $e) {
   if ($e->getCode() == 1062) respond(["error" => "Service name already exists"], 409);
-  respond(["error" => "Failed to update service", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to update service"], 500);
 }

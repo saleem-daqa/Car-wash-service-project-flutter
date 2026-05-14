@@ -13,7 +13,8 @@ class ManageServicesTeamsScreen extends StatefulWidget {
   const ManageServicesTeamsScreen({super.key});
 
   @override
-  State<ManageServicesTeamsScreen> createState() => _ManageServicesTeamsScreenState();
+  State<ManageServicesTeamsScreen> createState() =>
+      _ManageServicesTeamsScreenState();
 }
 
 class _ManageServicesTeamsScreenState extends State<ManageServicesTeamsScreen> {
@@ -28,7 +29,9 @@ class _ManageServicesTeamsScreenState extends State<ManageServicesTeamsScreen> {
   }
 
   Future<List<dynamic>> loadServices() async {
-    final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/services_list_all.php'));
+    final response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}/services_list_all.php'),
+    );
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       if (data['status'] == 'success') {
@@ -140,7 +143,7 @@ class _ManageServicesTeamsScreenState extends State<ManageServicesTeamsScreen> {
                     Icon(
                       Icons.settings_outlined,
                       size: 52,
-                      color: AppTheme.primaryBlue.withOpacity(0.65),
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.65),
                     ),
                     const SizedBox(height: 12),
                     const Text(
@@ -158,7 +161,10 @@ class _ManageServicesTeamsScreenState extends State<ManageServicesTeamsScreen> {
             const SizedBox(height: 12),
             Card(
               child: ListTile(
-                leading: const Icon(Icons.design_services_outlined, color: AppTheme.primaryBlue),
+                leading: const Icon(
+                  Icons.design_services_outlined,
+                  color: AppTheme.primaryBlue,
+                ),
                 title: const Text('Services'),
                 subtitle: FutureBuilder<List<dynamic>>(
                   future: servicesFuture,
@@ -167,14 +173,18 @@ class _ManageServicesTeamsScreenState extends State<ManageServicesTeamsScreen> {
                       return const Text('Loading...');
                     }
                     final services = snapshot.data ?? [];
-                    return Text('${services.length} service${services.length != 1 ? 's' : ''} available');
+                    return Text(
+                      '${services.length} service${services.length != 1 ? 's' : ''} available',
+                    );
                   },
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const ServicesManagementScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const ServicesManagementScreen(),
+                    ),
                   );
                 },
               ),
@@ -182,7 +192,10 @@ class _ManageServicesTeamsScreenState extends State<ManageServicesTeamsScreen> {
             const SizedBox(height: 12),
             Card(
               child: ListTile(
-                leading: const Icon(Icons.groups_outlined, color: AppTheme.primaryBlue),
+                leading: const Icon(
+                  Icons.groups_outlined,
+                  color: AppTheme.primaryBlue,
+                ),
                 title: const Text('Teams'),
                 subtitle: FutureBuilder<List<dynamic>>(
                   future: teamsFuture,
@@ -191,14 +204,18 @@ class _ManageServicesTeamsScreenState extends State<ManageServicesTeamsScreen> {
                       return const Text('Loading...');
                     }
                     final teams = snapshot.data ?? [];
-                    return Text('${teams.length} team${teams.length != 1 ? 's' : ''} available');
+                    return Text(
+                      '${teams.length} team${teams.length != 1 ? 's' : ''} available',
+                    );
                   },
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const TeamsManagementScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const TeamsManagementScreen(),
+                    ),
                   );
                 },
               ),
@@ -206,14 +223,19 @@ class _ManageServicesTeamsScreenState extends State<ManageServicesTeamsScreen> {
             const SizedBox(height: 12),
             Card(
               child: ListTile(
-                leading: const Icon(Icons.directions_car, color: AppTheme.primaryBlue),
+                leading: const Icon(
+                  Icons.directions_car,
+                  color: AppTheme.primaryBlue,
+                ),
                 title: const Text('Cars'),
                 subtitle: const Text('Company cars management'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const CompanyCarsManagementScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const CompanyCarsManagementScreen(),
+                    ),
                   );
                 },
               ),

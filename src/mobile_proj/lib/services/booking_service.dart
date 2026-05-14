@@ -133,54 +133,31 @@ class BookingService {
   }
 
   List<Booking> getCurrentBookings() {
-    return _currentBookings ?? _bookings.where((b) => 
-      b.status != BookingStatus.completed && 
-      b.status != BookingStatus.cancelled
-    ).toList();
+    return _currentBookings ??
+        _bookings
+            .where(
+              (b) =>
+                  b.status != BookingStatus.completed &&
+                  b.status != BookingStatus.cancelled,
+            )
+            .toList();
   }
 
   List<Booking> getPastBookings() {
-    return _pastBookings ?? _bookings.where((b) => 
-      b.status == BookingStatus.completed || 
-      b.status == BookingStatus.cancelled
-    ).toList();
-  }
-
-  Booking _mapBookingFromApi(Map<String, dynamic> bookingData) {
-    final scheduledAt = bookingData['scheduled_at'];
-    DateTime scheduledDate = DateTime.now();
-    String scheduledTime = 'N/A';
-    
-    if (scheduledAt != null && scheduledAt.toString().isNotEmpty) {
-      try {
-        scheduledDate = DateTime.parse(scheduledAt);
-        scheduledTime = '${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}';
-      } catch (e) {
-        scheduledDate = DateTime.now();
-        scheduledTime = 'N/A';
-      }
-    }
-
-    return Booking(
-      id: 'JOB-${bookingData['booking_id']}',
-      vehiclePlate: bookingData['car'] != null 
-          ? (bookingData['car']['plate_number'] ?? '') 
-          : '',
-      serviceName: bookingData['service_name'] ?? 'Service',
-      price: (bookingData['price'] ?? 0.0).toDouble(),
-      scheduledDate: scheduledDate,
-      scheduledTime: scheduledTime,
-      latitude: 0.0,
-      longitude: 0.0,
-      paymentMethod: _mapPaymentMethod(bookingData['payment_method'] ?? 'CASH'),
-      status: _mapStatusFromApi(bookingData['status'] ?? 'PENDING'),
-    );
+    return _pastBookings ??
+        _bookings
+            .where(
+              (b) =>
+                  b.status == BookingStatus.completed ||
+                  b.status == BookingStatus.cancelled,
+            )
+            .toList();
   }
 
   Booking _mapBookingFromNewApi(Map<String, dynamic> bookingData) {
     DateTime scheduledDate = DateTime.now();
     String scheduledTime = 'N/A';
-    
+
     if (bookingData['booking_date'] != null) {
       try {
         if (bookingData['booking_time'] != null) {
@@ -189,8 +166,11 @@ class BookingService {
           scheduledDate = DateTime.parse('$dateStr $timeStr:00');
           scheduledTime = timeStr;
         } else {
-          scheduledDate = DateTime.parse(bookingData['booking_date'].toString());
-          scheduledTime = '${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}';
+          scheduledDate = DateTime.parse(
+            bookingData['booking_date'].toString(),
+          );
+          scheduledTime =
+              '${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}';
         }
       } catch (e) {
         scheduledDate = DateTime.now();
@@ -228,19 +208,6 @@ class BookingService {
         return BookingStatus.cancelled;
       default:
         return BookingStatus.pending;
-    }
-  }
-
-  String _mapPaymentMethod(String apiMethod) {
-    switch (apiMethod.toUpperCase()) {
-      case 'CASH':
-        return 'cash';
-      case 'VISA':
-        return 'visa';
-      case 'WALLET':
-        return 'wallet';
-      default:
-        return 'cash';
     }
   }
 }

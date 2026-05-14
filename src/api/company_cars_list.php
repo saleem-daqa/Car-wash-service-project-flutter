@@ -18,5 +18,5 @@ try {
 
   respond(["cars" => $cars]);
 } catch (Exception $e) {
-  respond(["error" => "Failed to fetch company cars", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to fetch company cars"], 500);
 }

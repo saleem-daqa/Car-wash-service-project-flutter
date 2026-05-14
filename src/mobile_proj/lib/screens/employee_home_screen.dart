@@ -107,10 +107,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       appBar: AppBar(
         title: const Text('Employee Home'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: logout,
-          ),
+          IconButton(icon: const Icon(Icons.logout), onPressed: logout),
         ],
       ),
       body: FutureBuilder<List<Job>>(
@@ -119,7 +116,9 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Something went wrong: ${snapshot.error}'));
+            return Center(
+              child: Text('Something went wrong: ${snapshot.error}'),
+            );
           } else {
             final jobs = snapshot.data ?? [];
             if (jobs.isEmpty) {
@@ -138,13 +137,18 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                 itemBuilder: (context, index) {
                   final job = jobs[index];
                   return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     elevation: 3,
                     child: ListTile(
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: getStatusColor(job.status).withOpacity(0.1),
+                          color: getStatusColor(
+                            job.status,
+                          ).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
@@ -157,20 +161,29 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (job.customerName.isNotEmpty && job.customerName != 'Customer')
+                          if (job.customerName.isNotEmpty &&
+                              job.customerName != 'Customer')
                             Text('Customer: ${job.customerName}'),
                           if (job.vehiclePlate.isNotEmpty)
                             Text('Car: ${job.vehiclePlate}'),
-                          if (job.addressText != null && job.addressText!.isNotEmpty)
+                          if (job.addressText != null &&
+                              job.addressText!.isNotEmpty)
                             Text('Location: ${job.addressText}'),
-                          Text('Date: ${job.scheduledDate.day}/${job.scheduledDate.month}/${job.scheduledDate.year} ${job.scheduledTime}'),
+                          Text(
+                            'Date: ${job.scheduledDate.day}/${job.scheduledDate.month}/${job.scheduledDate.year} ${job.scheduledTime}',
+                          ),
                           if (job.paymentMethod.isNotEmpty)
                             Text('Payment: ${job.paymentMethod.toUpperCase()}'),
                           const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: getStatusColor(job.status).withOpacity(0.1),
+                              color: getStatusColor(
+                                job.status,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(

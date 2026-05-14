@@ -30,21 +30,23 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Reset AUTO_INCREMENT
 ALTER TABLE users AUTO_INCREMENT = 1;
 
--- Create manager account (plain text password)
-INSERT INTO users (full_name, email, phone, password_hash, role, is_active)
-VALUES (
-    'Manager',
-    'manager@carwash.com',
-    '0501234567',
-    'manager123',  -- Plain text password (no hashing)
-    'MANAGER',
-    1
-);
+-- Do not insert plaintext passwords directly.
+-- After this reset, create the manager through create_manager.php so the
+-- password is hashed before it is stored.
 ```
 
-**Login Credentials:**
-- Email: `manager@carwash.com`
-- Password: `manager123`
+Then create the manager through the API:
+
+```bash
+export CARWASH_SETUP_KEY="choose-a-long-random-secret"
+
+curl -X POST http://localhost:8888/api/create_manager.php \
+  -H "X-Setup-Key: $CARWASH_SETUP_KEY" \
+  -d "full_name=Manager" \
+  -d "email=manager@carwash.com" \
+  -d "phone=0501234567" \
+  -d "password=manager123"
+```
 
 ---
 
@@ -54,6 +56,7 @@ VALUES (
 ```
 POST http://localhost:8888/api/create_manager.php
 Content-Type: application/x-www-form-urlencoded
+X-Setup-Key: your-long-random-secret
 
 full_name=Manager Name
 email=manager@example.com
@@ -64,6 +67,7 @@ password=manager123
 ### Via cURL:
 ```bash
 curl -X POST http://localhost:8888/api/create_manager.php \
+  -H "X-Setup-Key: $CARWASH_SETUP_KEY" \
   -d "full_name=Manager Name" \
   -d "email=manager@example.com" \
   -d "phone=1234567890" \
@@ -72,9 +76,15 @@ curl -X POST http://localhost:8888/api/create_manager.php \
 
 ---
 
-## Option 2: Direct SQL Insert (Without Deleting Existing Data)
+## Option 2: Direct SQL Insert With A Generated Hash
 
-If you just want to add a manager without deleting existing accounts:
+If you cannot call the API, generate a hash first:
+
+```bash
+php -r "echo password_hash('manager123', PASSWORD_DEFAULT);"
+```
+
+Then use the generated hash in SQL:
 
 ```sql
 INSERT INTO users (full_name, email, phone, password_hash, role, is_active)
@@ -82,7 +92,7 @@ VALUES (
     'Your Manager Name',
     'manager@example.com',
     '1234567890',
-    'your_password_here',  -- Plain text password (no hashing)
+    '$2y$10$replace_this_with_the_generated_hash',
     'MANAGER',
     1
 );
@@ -91,28 +101,22 @@ VALUES (
 **Important:**
 - Email must be unique
 - Phone must be unique
-- Password is stored as **plain text** (no hashing)
-- Replace the values with your actual manager details
+- Passwords must be stored as hashes, never plain text.
+- `create_manager.php` and `update_manager_password.php` require `CARWASH_SETUP_KEY`.
+- Replace the sample values with your actual manager details.
 
 ---
 
 ## Example Manager Account
 
 ```sql
-INSERT INTO users (full_name, email, phone, password_hash, role, is_active)
-VALUES (
-    'John Manager',
-    'john@manager.com',
-    '0501234567',
-    'manager123',  -- Plain text password
-    'MANAGER',
-    1
-);
+curl -X POST http://localhost:8888/api/create_manager.php \
+  -H "X-Setup-Key: $CARWASH_SETUP_KEY" \
+  -d "full_name=John Manager" \
+  -d "email=john@manager.com" \
+  -d "phone=0501234567" \
+  -d "password=manager123"
 ```
-
-**Login with:**
-- Email: `john@manager.com`
-- Password: `manager123`
 
 ---
 

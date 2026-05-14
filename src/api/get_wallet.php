@@ -28,7 +28,6 @@ if (!$stmt) {
     echo json_encode([
         "status" => "error",
         "message" => "Prepare failed",
-        "error" => $conn->error
     ]);
     $conn->close();
     exit;

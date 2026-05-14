@@ -85,5 +85,5 @@ try {
   if ($e->getCode() == 1062) {
     respond(["error" => "Plate number already exists"], 409);
   }
-  respond(["error" => "Failed to update company car", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to update company car"], 500);
 }

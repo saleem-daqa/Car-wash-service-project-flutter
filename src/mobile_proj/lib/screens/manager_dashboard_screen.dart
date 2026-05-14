@@ -43,7 +43,9 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
 
   Future<List<dynamic>> loadActivities() async {
     try {
-      final response = await http.get(Uri.parse(ApiConfig.managerRecentActivitiesUrl));
+      final response = await http.get(
+        Uri.parse(ApiConfig.managerRecentActivitiesUrl),
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['error'] != null) {
@@ -160,7 +162,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                         Icon(
                           Icons.dashboard_outlined,
                           size: 52,
-                          color: AppTheme.primaryBlue.withOpacity(0.65),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.65),
                         ),
                         const SizedBox(height: 12),
                         const Text(
@@ -177,9 +179,18 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                           runSpacing: 16,
                           alignment: WrapAlignment.center,
                           children: [
-                            _buildStatItem('Total Bookings', '${stats['total_bookings'] ?? 0}'),
-                            _buildStatItem('Active Services', '${stats['active_services'] ?? 0}'),
-                            _buildStatItem('Employees', '${stats['active_employees'] ?? 0}'),
+                            _buildStatItem(
+                              'Total Bookings',
+                              '${stats['total_bookings'] ?? 0}',
+                            ),
+                            _buildStatItem(
+                              'Active Services',
+                              '${stats['active_services'] ?? 0}',
+                            ),
+                            _buildStatItem(
+                              'Employees',
+                              '${stats['active_employees'] ?? 0}',
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -191,22 +202,37 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.attach_money, color: Colors.green),
+                                  const Icon(
+                                    Icons.attach_money,
+                                    color: Colors.green,
+                                  ),
                                   const SizedBox(width: 8),
                                   Column(
                                     children: [
                                       Text(
                                         '${(double.tryParse((stats['total_revenue'] ?? 0).toString()) ?? 0.0).toStringAsFixed(2)} ₪',
-                                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                        ),
                                       ),
-                                      const Text('Total Revenue', style: TextStyle(fontSize: 12)),
+                                      const Text(
+                                        'Total Revenue',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                        if (stats['avg_rating'] != null && (double.tryParse((stats['avg_rating'] ?? 0).toString()) ?? 0.0) > 0)
+                        if (stats['avg_rating'] != null &&
+                            (double.tryParse(
+                                      (stats['avg_rating'] ?? 0).toString(),
+                                    ) ??
+                                    0.0) >
+                                0)
                           Card(
                             color: Colors.orange.shade50,
                             child: Padding(
@@ -218,12 +244,18 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                                   const SizedBox(width: 8),
                                   Text(
                                     '${(double.tryParse((stats['avg_rating'] ?? 0).toString()) ?? 0.0).toStringAsFixed(1)} / 5.0',
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
                                     '(${stats['rating_count'] ?? 0} reviews)',
-                                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -238,7 +270,10 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
             const SizedBox(height: 12),
             Card(
               child: ListTile(
-                leading: const Icon(Icons.event_note, color: AppTheme.primaryBlue),
+                leading: const Icon(
+                  Icons.event_note,
+                  color: AppTheme.primaryBlue,
+                ),
                 title: const Text('View All Bookings'),
                 subtitle: const Text('See bookings with employee & team info'),
                 trailing: const Icon(Icons.chevron_right),
@@ -255,7 +290,10 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
             const SizedBox(height: 12),
             Card(
               child: ListTile(
-                leading: const Icon(Icons.bar_chart, color: AppTheme.primaryBlue),
+                leading: const Icon(
+                  Icons.bar_chart,
+                  color: AppTheme.primaryBlue,
+                ),
                 title: const Text('Statistics & Revenue'),
                 subtitle: FutureBuilder<Map<String, dynamic>>(
                   future: statsFuture,
@@ -263,7 +301,9 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                     if (snapshot.hasData) {
                       final stats = snapshot.data ?? {};
                       final avgRating = stats['avg_rating'] ?? 0.0;
-                      return Text('Avg Rating: ${avgRating.toStringAsFixed(1)}');
+                      return Text(
+                        'Avg Rating: ${avgRating.toStringAsFixed(1)}',
+                      );
                     }
                     return const Text('Loading...');
                   },
@@ -288,8 +328,11 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                     FutureBuilder<List<dynamic>>(
                       future: activitiesFuture,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         }
                         final activities = snapshot.data ?? [];
                         if (activities.isEmpty) {
@@ -302,15 +345,18 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                                 activity['type'] == 'booking'
                                     ? Icons.event_note
                                     : activity['type'] == 'wallet'
-                                        ? Icons.account_balance_wallet
-                                        : Icons.feedback,
+                                    ? Icons.account_balance_wallet
+                                    : Icons.feedback,
                                 color: AppTheme.primaryBlue,
                               ),
                               title: Text(activity['title'] ?? ''),
                               subtitle: Text(activity['subtitle'] ?? ''),
                               trailing: Text(
                                 _formatTime(activity['time'] ?? ''),
-                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
                               ),
                             );
                           }).toList(),
@@ -338,10 +384,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
             color: AppTheme.primaryBlue,
           ),
         ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }

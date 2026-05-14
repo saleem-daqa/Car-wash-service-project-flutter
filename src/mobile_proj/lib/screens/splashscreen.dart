@@ -4,13 +4,14 @@ import 'package:lottie/lottie.dart';
 class SplashScreen extends StatefulWidget {
   final VoidCallback onFinished;
 
-  const SplashScreen({Key? key, required this.onFinished}) : super(key: key);
+  const SplashScreen({super.key, required this.onFinished});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   int _animationIndex = 0;
 

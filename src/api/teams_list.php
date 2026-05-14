@@ -44,5 +44,5 @@ try {
 
   respond(["teams" => $teams]);
 } catch (Exception $e) {
-  respond(["error" => "Failed to fetch teams", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to fetch teams"], 500);
 }

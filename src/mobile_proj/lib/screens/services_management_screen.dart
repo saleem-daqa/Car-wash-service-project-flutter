@@ -8,7 +8,8 @@ class ServicesManagementScreen extends StatefulWidget {
   const ServicesManagementScreen({super.key});
 
   @override
-  State<ServicesManagementScreen> createState() => _ServicesManagementScreenState();
+  State<ServicesManagementScreen> createState() =>
+      _ServicesManagementScreenState();
 }
 
 class _ServicesManagementScreenState extends State<ServicesManagementScreen> {
@@ -28,7 +29,9 @@ class _ServicesManagementScreenState extends State<ServicesManagementScreen> {
 
   Future<List<dynamic>> fetchServices() async {
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/services_list_all.php'));
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/services_list_all.php'),
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
@@ -62,6 +65,7 @@ class _ServicesManagementScreenState extends State<ServicesManagementScreen> {
       ),
     );
 
+    if (!mounted) return;
     if (confirmed != true) return;
 
     try {
@@ -71,33 +75,54 @@ class _ServicesManagementScreenState extends State<ServicesManagementScreen> {
         body: json.encode({'service_id': serviceId}),
       );
 
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['ok'] == true || data['status'] == 'success') {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Service deleted successfully'), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text('Service deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
           );
           loadServices();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['error'] ?? data['message'] ?? 'Could not delete'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(
+                data['error'] ?? data['message'] ?? 'Could not delete',
+              ),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       } else {
         try {
           final data = json.decode(response.body);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['error'] ?? data['message'] ?? 'Could not delete'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(
+                data['error'] ?? data['message'] ?? 'Could not delete',
+              ),
+              backgroundColor: Colors.red,
+            ),
           );
-        } catch (e) {
+        } catch (_) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Server error: ${response.statusCode}'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Server error: ${response.statusCode}'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Something went wrong: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Something went wrong: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -118,33 +143,40 @@ class _ServicesManagementScreenState extends State<ServicesManagementScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddEditServiceScreen(
-          onSaved: () => loadServices(),
-        ),
+        builder: (_) => AddEditServiceScreen(onSaved: () => loadServices()),
       ),
     );
   }
 
   Future<void> createDefaultServices() async {
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/create_default_services.php'));
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/create_default_services.php'),
+      );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Default services created: ${(data['created'] ?? []).join(', ')}'),
+              content: Text(
+                'Default services created: ${(data['created'] ?? []).join(', ')}',
+              ),
               backgroundColor: Colors.green,
             ),
           );
           loadServices();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Failed to create'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(data['message'] ?? 'Failed to create'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
@@ -154,9 +186,7 @@ class _ServicesManagementScreenState extends State<ServicesManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Services Management'),
-      ),
+      appBar: AppBar(title: const Text('Services Management')),
       body: RefreshIndicator(
         onRefresh: () async {
           loadServices();
@@ -213,22 +243,34 @@ class _ServicesManagementScreenState extends State<ServicesManagementScreen> {
                           itemBuilder: (context, index) {
                             final service = services[index];
                             return Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               child: ListTile(
                                 leading: Icon(
                                   _getServiceIcon(service['name'] ?? ''),
-                                  color: _getServiceColor(service['name'] ?? ''),
+                                  color: _getServiceColor(
+                                    service['name'] ?? '',
+                                  ),
                                 ),
                                 title: Text(
                                   service['name'] ?? 'Unknown',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (service['description'] != null && service['description'].toString().isNotEmpty)
+                                    if (service['description'] != null &&
+                                        service['description']
+                                            .toString()
+                                            .isNotEmpty)
                                       Padding(
-                                        padding: const EdgeInsets.only(bottom: 4),
+                                        padding: const EdgeInsets.only(
+                                          bottom: 4,
+                                        ),
                                         child: Text(
                                           service['description'] ?? '',
                                           maxLines: 2,
@@ -237,7 +279,10 @@ class _ServicesManagementScreenState extends State<ServicesManagementScreen> {
                                       ),
                                     Text(
                                       'Price: ${(double.tryParse((service['price'] ?? 0).toString()) ?? 0.0).toStringAsFixed(2)} ₪ | Duration: ${service['duration_minutes'] ?? 0} min | Status: ${service['is_active'] == 1 ? 'Active' : 'Inactive'}',
-                                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -245,12 +290,23 @@ class _ServicesManagementScreenState extends State<ServicesManagementScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.edit, color: AppTheme.primaryBlue),
+                                      icon: const Icon(
+                                        Icons.edit,
+                                        color: AppTheme.primaryBlue,
+                                      ),
                                       onPressed: () => editService(service),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red),
-                                      onPressed: () => deleteService(int.tryParse(service['service_id'].toString()) ?? 0),
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () => deleteService(
+                                        int.tryParse(
+                                              service['service_id'].toString(),
+                                            ) ??
+                                            0,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -287,11 +343,7 @@ class AddEditServiceScreen extends StatefulWidget {
 
   final VoidCallback onSaved;
 
-  const AddEditServiceScreen({
-    super.key,
-    this.service,
-    required this.onSaved,
-  });
+  const AddEditServiceScreen({super.key, this.service, required this.onSaved});
 
   @override
   State<AddEditServiceScreen> createState() => _AddEditServiceScreenState();
@@ -313,8 +365,11 @@ class _AddEditServiceScreenState extends State<AddEditServiceScreen> {
       _nameController.text = widget.service!['name'] ?? '';
       _descriptionController.text = widget.service!['description'] ?? '';
       final price = widget.service!['price'];
-      _priceController.text = price != null ? (double.tryParse(price.toString()) ?? 0.0).toStringAsFixed(2) : '0.00';
-      _durationController.text = (widget.service!['duration_minutes'] ?? 30).toString();
+      _priceController.text = price != null
+          ? (double.tryParse(price.toString()) ?? 0.0).toStringAsFixed(2)
+          : '0.00';
+      _durationController.text = (widget.service!['duration_minutes'] ?? 30)
+          .toString();
       _isActive = (widget.service!['is_active'] ?? 1) == 1;
     } else {
       _durationController.text = '30';
@@ -352,17 +407,24 @@ class _AddEditServiceScreenState extends State<AddEditServiceScreen> {
           body: json.encode(body),
         );
 
+        if (!mounted) return;
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           if (data['ok'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Service updated successfully'), backgroundColor: Colors.green),
+              const SnackBar(
+                content: Text('Service updated successfully'),
+                backgroundColor: Colors.green,
+              ),
             );
             Navigator.pop(context);
             widget.onSaved();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(data['error'] ?? 'Failed to update'), backgroundColor: Colors.red),
+              SnackBar(
+                content: Text(data['error'] ?? 'Failed to update'),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         }
@@ -373,33 +435,53 @@ class _AddEditServiceScreenState extends State<AddEditServiceScreen> {
           body: json.encode(body),
         );
 
+        if (!mounted) return;
         if (response.statusCode == 200 || response.statusCode == 201) {
           final data = json.decode(response.body);
           if (data['ok'] == true || data['status'] == 'success') {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Service created successfully'), backgroundColor: Colors.green),
+              const SnackBar(
+                content: Text('Service created successfully'),
+                backgroundColor: Colors.green,
+              ),
             );
             Navigator.pop(context);
             widget.onSaved();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(data['error'] ?? data['message'] ?? 'Failed to create'), backgroundColor: Colors.red),
+              SnackBar(
+                content: Text(
+                  data['error'] ?? data['message'] ?? 'Failed to create',
+                ),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         } else {
           try {
             final data = json.decode(response.body);
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(data['error'] ?? data['message'] ?? 'Failed to create'), backgroundColor: Colors.red),
+              SnackBar(
+                content: Text(
+                  data['error'] ?? data['message'] ?? 'Failed to create',
+                ),
+                backgroundColor: Colors.red,
+              ),
             );
-          } catch (e) {
+          } catch (_) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to create service: ${response.statusCode}'), backgroundColor: Colors.red),
+              SnackBar(
+                content: Text(
+                  'Failed to create service: ${response.statusCode}',
+                ),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         }
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
@@ -426,7 +508,8 @@ class _AddEditServiceScreenState extends State<AddEditServiceScreen> {
                   labelText: 'Service Name',
                   prefixIcon: Icon(Icons.local_car_wash),
                 ),
-                validator: (v) => (v?.trim().isEmpty ?? true) ? 'Required' : null,
+                validator: (v) =>
+                    (v?.trim().isEmpty ?? true) ? 'Required' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -485,7 +568,11 @@ class _AddEditServiceScreenState extends State<AddEditServiceScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(widget.service == null ? 'Create Service' : 'Update Service'),
+                      : Text(
+                          widget.service == null
+                              ? 'Create Service'
+                              : 'Update Service',
+                        ),
                 ),
               ),
             ],

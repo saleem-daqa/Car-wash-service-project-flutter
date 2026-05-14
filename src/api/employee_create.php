@@ -15,6 +15,14 @@ if ($fullName === "" || $email === "" || $phone === "" || $password === "") {
   respond(["error" => "Required: full_name, email, phone, password"], 400);
 }
 
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+  respond(["error" => "Invalid email format"], 400);
+}
+
+if (!is_strong_password($password)) {
+  respond(["error" => "Password must be at least 8 characters and include letters and numbers"], 400);
+}
+
 $role = "EMPLOYEE";
 $isActive = 1;
 
@@ -31,11 +39,12 @@ try {
     INSERT INTO users (full_name, email, phone, password_hash, role, is_active)
     VALUES (?, ?, ?, ?, ?, ?)
   ");
-  $stmt->bind_param("sssssi", $fullName, $email, $phone, $password, $role, $isActive);
+  $passwordHash = hash_user_password($password);
+  $stmt->bind_param("sssssi", $fullName, $email, $phone, $passwordHash, $role, $isActive);
   $stmt->execute();
 
   respond(["ok" => true, "user_id" => (int)$stmt->insert_id], 201);
 } catch (Exception $e) {
-  respond(["error" => "Failed to create employee", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to create employee"], 500);
 }
 ?>

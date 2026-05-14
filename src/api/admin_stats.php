@@ -30,5 +30,5 @@ try {
     "active_services" => $activeServices
   ]);
 } catch (Exception $e) {
-  respond(["error" => "Failed to load admin stats", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to load admin stats"], 500);
 }

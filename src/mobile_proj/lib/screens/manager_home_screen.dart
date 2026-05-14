@@ -1,52 +1,51 @@
 import 'package:flutter/material.dart';
-import '../widgets/section_card.dart';
-import '../theme/app_theme.dart';
-import 'manager_dashboard_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../widgets/app_feedback.dart';
+import '../widgets/app_shell.dart';
+import '../widgets/dashboard_action_card.dart';
+import 'change_password_screen.dart';
+import 'loginscreen.dart';
 import 'manage_services_teams_screen.dart';
 import 'manager_create_team_account_screen.dart';
-import 'loginscreen.dart';
-import 'change_password_screen.dart';
+import 'manager_dashboard_screen.dart';
 
 class ManagerHomeScreen extends StatelessWidget {
   const ManagerHomeScreen({super.key});
 
-  void _logout(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false, // Remove all previous routes
-              );
-            },
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
+  Future<void> _logout(BuildContext context) async {
+    final confirmed = await showAppConfirmationDialog(
+      context,
+      title: 'Log out',
+      message: 'Are you sure you want to log out of the manager dashboard?',
+      confirmLabel: 'Log out',
+      isDanger: true,
+    );
+
+    if (!confirmed || !context.mounted) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_id');
+
+    if (!context.mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manager Home'),
+        title: const Text('Manager Dashboard'),
         actions: [
           PopupMenuButton<String>(
+            tooltip: 'Account options',
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
               if (value == 'change_password') {
@@ -71,13 +70,13 @@ class ManagerHomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'logout',
                 child: Row(
                   children: [
-                    Icon(Icons.logout, size: 20, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Logout', style: TextStyle(color: Colors.red)),
+                    Icon(Icons.logout, size: 20, color: colorScheme.error),
+                    const SizedBox(width: 8),
+                    Text('Logout', style: TextStyle(color: colorScheme.error)),
                   ],
                 ),
               ),
@@ -85,97 +84,93 @@ class ManagerHomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.person_outline,
-                    size: 52,
-                    color: AppTheme.primaryBlue.withOpacity(0.65),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Welcome, Manager',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: AppTheme.darkBlue,
+      body: AppShell(
+        maxWidth: 720,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.admin_panel_settings_outlined,
+                        size: 30,
+                        color: colorScheme.primary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Manage your car wash operations',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.blueGrey.shade700,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Welcome, Manager', style: textTheme.titleLarge),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Track bookings, services, teams, and employee accounts.',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-
-          const SizedBox(height: 16),
-          SectionCard(
-            number: 1,
-            title: 'Dashboard',
-            bullets: const [
-              'View bookings & statistics',
-              'Revenue overview',
-            ],
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ManagerDashboardScreen(),
-                ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 12),
-          SectionCard(
-            number: 2,
-            title: 'Create Employee Account',
-            bullets: const [
-              'Create employee accounts',
-              'Assign employees to teams',
-            ],
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ManagerCreateTeamAccountScreen(),
-                ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 12),
-          SectionCard(
-            number: 3,
-            title: 'Services & Teams',
-            bullets: const [
-              'Add / edit services',
-              'Assign teams & cars',
-            ],
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ManageServicesTeamsScreen(),
-                ),
-              );
-            },
-          ),
-
-        ],
+            const SizedBox(height: 16),
+            DashboardActionCard(
+              icon: Icons.insights_outlined,
+              title: 'Operations dashboard',
+              subtitle: 'View bookings, status activity, and revenue overview',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ManagerDashboardScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            DashboardActionCard(
+              icon: Icons.badge_outlined,
+              title: 'Create employee account',
+              subtitle: 'Add team members and prepare them for assignments',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ManagerCreateTeamAccountScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            DashboardActionCard(
+              icon: Icons.design_services_outlined,
+              title: 'Services and teams',
+              subtitle: 'Manage wash services, work teams, and company cars',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ManageServicesTeamsScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

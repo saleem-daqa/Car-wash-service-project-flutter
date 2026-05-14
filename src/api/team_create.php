@@ -74,7 +74,7 @@ try {
   if ($e->getCode() == 1062) {
     respond(["error" => "Team name or company car already in use"], 409);
   }
-  respond(["error" => "Failed to create team", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to create team"], 500);
 } catch (Exception $e) {
-  respond(["error" => "Failed to create team", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to create team"], 500);
 }

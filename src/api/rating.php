@@ -1,105 +1,86 @@
 <?php
-// Add CORS headers FIRST
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
-header('Content-Type: application/json');
+header("Content-Type: application/json; charset=UTF-8");
 
-// Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
-    exit;
+    exit(0);
 }
 
-$servername = "localhost";   
-$username = "root";          
-$password = "1234";             
-$dbname = "car_wash_db";   
+require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/db.php';
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode(["status" => "error", "message" => "Database connection failed"]);
-    exit;
-}
-
-// Handle GET request - Fetch existing rating
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $booking_id = isset($_GET['booking_id']) ? intval($_GET['booking_id']) : 0;
-    
+    $booking_id = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
+
     if ($booking_id <= 0) {
-        http_response_code(400);
-        echo json_encode(["status" => "error", "message" => "Invalid booking ID"]);
-        exit;
+        json_response(["status" => "error", "message" => "Invalid booking ID"], 400);
     }
-    
-    $stmt = $conn->prepare("SELECT rating, comment FROM ratings_feedback WHERE booking_id = ?");
+
+    $stmt = $conn->prepare("SELECT rating, comment FROM ratings_feedback WHERE booking_id = ? LIMIT 1");
     $stmt->bind_param("i", $booking_id);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
-        echo json_encode([
+        json_response([
             "status" => "success",
-            "rating" => intval($row['rating']),
-            "feedback" => $row['comment']
-        ]);
-    } else {
-        echo json_encode([
-            "status" => "success",
-            "rating" => 0,
-            "feedback" => ""
+            "rating" => (int)$row['rating'],
+            "feedback" => $row['comment'] ?? ''
         ]);
     }
-    
-    $stmt->close();
-    $conn->close();
-    exit;
+
+    json_response([
+        "status" => "success",
+        "rating" => 0,
+        "feedback" => ""
+    ]);
 }
 
-// Handle POST request - Save rating
-$booking_id = isset($_POST['booking_id']) ? intval($_POST['booking_id']) : 0;
-$rating = isset($_POST['rating']) ? intval($_POST['rating']) : 0;
-$feedback = isset($_POST['feedback']) ? trim($_POST['feedback']) : '';
+require_post();
+
+$booking_id = isset($_POST['booking_id']) ? (int)$_POST['booking_id'] : 0;
+$rating = isset($_POST['rating']) ? (int)$_POST['rating'] : 0;
+$feedback = clean($_POST['feedback'] ?? '');
 
 if ($booking_id <= 0 || $rating < 1 || $rating > 5) {
-    http_response_code(400);
-    echo json_encode(["status" => "error", "message" => "Invalid input"]);
-    exit;
+    json_response(["status" => "error", "message" => "booking_id and rating (1-5) are required"], 400);
 }
 
-$stmt = $conn->prepare("SELECT customer_id FROM bookings WHERE booking_id = ?");
+if (strlen($feedback) > 1000) {
+    json_response(["status" => "error", "message" => "Feedback must be 1000 characters or fewer"], 400);
+}
+
+$stmt = $conn->prepare("SELECT customer_id FROM bookings WHERE booking_id = ? AND status = 'COMPLETED' LIMIT 1");
 $stmt->bind_param("i", $booking_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    http_response_code(404);
-    echo json_encode(["status" => "error", "message" => "Booking not found"]);
-    exit;
+    $stmt->close();
+    json_response(["status" => "error", "message" => "Booking not found or not completed"], 404);
 }
 
 $row = $result->fetch_assoc();
-$customer_id = $row['customer_id'];
+$customer_id = (int)$row['customer_id'];
 $stmt->close();
 
 $stmt = $conn->prepare("
-  INSERT INTO ratings_feedback (booking_id, customer_id, rating, comment, created_at)
-  VALUES (?, ?, ?, ?, NOW())
-  ON DUPLICATE KEY UPDATE rating = VALUES(rating), comment = VALUES(comment), created_at = NOW()
+    INSERT INTO ratings_feedback (booking_id, customer_id, rating, comment, created_at)
+    VALUES (?, ?, ?, ?, NOW())
+    ON DUPLICATE KEY UPDATE rating = VALUES(rating), comment = VALUES(comment), created_at = NOW()
 ");
-
 $stmt->bind_param("iiis", $booking_id, $customer_id, $rating, $feedback);
 
-if ($stmt->execute()) {
-    echo json_encode(["status" => "success", "message" => "Feedback saved"]);
-} else {
-    http_response_code(500);
-    echo json_encode(["status" => "error", "message" => "Failed to save feedback"]);
+if (!$stmt->execute()) {
+    error_log("Rating save failed for booking $booking_id");
+    $stmt->close();
+    json_response(["status" => "error", "message" => "Failed to save feedback"], 500);
 }
 
 $stmt->close();
-$conn->close();
+json_response(["status" => "success", "message" => "Feedback saved"]);
 ?>

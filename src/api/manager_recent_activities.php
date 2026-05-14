@@ -81,5 +81,5 @@ try {
 
   respond(["activities" => array_slice($activities, 0, $limit)]);
 } catch (Exception $e) {
-  respond(["error" => "Failed to load activities", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to load activities"], 500);
 }

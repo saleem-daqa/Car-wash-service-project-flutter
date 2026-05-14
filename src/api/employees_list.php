@@ -33,5 +33,5 @@ try {
 
   respond(["employees" => $employees]);
 } catch (Exception $e) {
-  respond(["error" => "Failed to fetch employees", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to fetch employees"], 500);
 }

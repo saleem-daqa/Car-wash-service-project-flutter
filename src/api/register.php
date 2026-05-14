@@ -25,9 +25,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     error("Invalid email format", 400);
 }
 
-if (strlen($password) < 6) {
-    error("Password must be at least 6 characters", 400);
-}
+validate_password_or_error($password);
 
 $valid_roles = ["CUSTOMER", "EMPLOYEE", "MANAGER"];
 if (!in_array($role, $valid_roles)) {
@@ -58,12 +56,13 @@ $stmt = $conn->prepare("
     INSERT INTO users (full_name, email, phone, password_hash, role, is_active)
     VALUES (?, ?, ?, ?, ?, 1)
 ");
-$stmt->bind_param("sssss", $full_name, $email, $phone, $password, $role);
+$password_hash = hash_user_password($password);
+$stmt->bind_param("sssss", $full_name, $email, $phone, $password_hash, $role);
 
 if (!$stmt->execute()) {
-    $err = $stmt->error;
+    error_log("Register user failed: " . $stmt->error);
     $stmt->close();
-    error("Failed to register user: " . $err, 500);
+    error("Failed to register user", 500);
 }
 
 $user_id = $stmt->insert_id;

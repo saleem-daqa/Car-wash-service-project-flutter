@@ -57,5 +57,5 @@ try {
     "rating_count" => $ratingCount
   ]);
 } catch (Exception $e) {
-  respond(["error" => "Failed to load manager stats", "details" => $e->getMessage()], 500);
+  respond(["error" => "Failed to load manager stats"], 500);
 }

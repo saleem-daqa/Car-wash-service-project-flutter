@@ -28,7 +28,8 @@ class Vehicle {
   }
 
   static bool isValidModel(String model) {
-    return RegExp(r'^\d+$').hasMatch(model.trim());
+    final trimmed = model.trim();
+    return trimmed.isNotEmpty && trimmed.length <= 50;
   }
 
   static bool isValidPlate(String plate) {

@@ -12,25 +12,18 @@ class AdminHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Employee & Manager'),
-      ),
+      appBar: AppBar(title: const Text('Employee & Manager')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           SectionCard(
             number: 1,
             title: 'Employee Home',
-            bullets: const [
-              'Assigned jobs',
-              'Start / finish washing',
-            ],
+            bullets: const ['Assigned jobs', 'Start / finish washing'],
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const EmployeeHomeScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const EmployeeHomeScreen()),
               );
             },
           ),
@@ -40,10 +33,7 @@ class AdminHomeScreen extends StatelessWidget {
           SectionCard(
             number: 2,
             title: 'Manager Dashboard',
-            bullets: const [
-              'View bookings',
-              'Statistics & overview',
-            ],
+            bullets: const ['View bookings', 'Statistics & overview'],
             onTap: () {
               Navigator.push(
                 context,
@@ -79,10 +69,7 @@ class AdminHomeScreen extends StatelessWidget {
           SectionCard(
             number: 4,
             title: 'Services & Teams',
-            bullets: const [
-              'Add / edit services',
-              'Assign teams & cars',
-            ],
+            bullets: const ['Add / edit services', 'Assign teams & cars'],
             onTap: () {
               Navigator.push(
                 context,
